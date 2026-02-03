@@ -24,7 +24,7 @@ const TwoWaysToInvest = () => {
   ];
 
   return (
-    <section className="relative bg-gray-2 py-16 dark:bg-bg-color-dark md:py-20 lg:py-28">
+    <section className="relative bg-gray-2 py-10 dark:bg-bg-color-dark md:py-12 lg:py-16">
       <div className="container">
         {/* Header */}
         <div className="mx-auto mb-12 max-w-[600px] text-center md:mb-16 lg:mb-20">

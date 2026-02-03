@@ -136,13 +136,25 @@ const Header = () => {
                               }`}
                             >
                               {menuItem.submenu.map((submenuItem, index) => (
-                                <Link
-                                  href={submenuItem.path}
-                                  key={index}
-                                  className="text-dark hover:text-primary block rounded-sm py-2.5 text-sm lg:px-3 dark:text-white/70 dark:hover:text-white"
-                                >
-                                  {submenuItem.title}
-                                </Link>
+                                submenuItem.newTab ? (
+                                  <a
+                                    href={submenuItem.path}
+                                    key={index}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-dark hover:text-primary block rounded-sm py-2.5 text-sm lg:px-3 dark:text-white/70 dark:hover:text-white"
+                                  >
+                                    {submenuItem.title}
+                                  </a>
+                                ) : (
+                                  <Link
+                                    href={submenuItem.path}
+                                    key={index}
+                                    className="text-dark hover:text-primary block rounded-sm py-2.5 text-sm lg:px-3 dark:text-white/70 dark:hover:text-white"
+                                  >
+                                    {submenuItem.title}
+                                  </Link>
+                                )
                               ))}
                             </div>
                           </>

@@ -141,7 +141,7 @@ const Team = () => {
   };
 
   return (
-    <section className="relative bg-gray-2 py-16 dark:bg-bg-color-dark md:py-20 lg:py-28">
+    <section className="relative bg-gray-2 py-10 dark:bg-bg-color-dark md:py-12 lg:py-16">
       <style jsx>{`
         @keyframes slideIn {
           from {

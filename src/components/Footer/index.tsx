@@ -1,10 +1,36 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 const Footer = () => {
+  const pathname = usePathname();
+  const isContactPage = pathname === "/contact";
+
   return (
     <>
+      {/* Call to Action Section - Hidden on Contact Page */}
+      {!isContactPage && (
+        <section className="py-10 md:py-12 lg:py-16 bg-white dark:bg-gray-dark">
+          <div className="container px-4 md:px-8 lg:px-12">
+            <div className="mx-auto max-w-[1200px] rounded-2xl bg-black px-8 py-16 text-center dark:bg-black md:px-12 md:py-20 lg:px-16 lg:py-24">
+              <h2 className="mb-6 text-3xl font-bold leading-tight text-white sm:text-4xl md:text-[45px] lg:text-[42px] xl:text-[45px]">
+                Work With ALVARADO Associates Today
+              </h2>
+              <p className="mx-auto mb-10 max-w-[900px] text-base leading-relaxed text-gray-300 sm:text-lg md:text-xl">
+                At Alvarado Associates, our seasoned team of real estate and hospitality experts is committed to guiding you through every step of your short term rental investment journey. With a proven track record in Airbnb arbitrage, we make it easy for you to tap into high yield rental markets with minimal upfront capital and zero operational stress.
+              </p>
+              <Link
+                href="/contact"
+                className="inline-block rounded-full bg-white px-10 py-4 text-base font-semibold text-black transition duration-300 ease-in-out hover:bg-gray-100"
+              >
+                Contact Us
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
       <footer className="relative z-10 bg-white pt-16 dark:bg-gray-dark md:pt-20 lg:pt-24">
         <div className="container">
           <div className="-mx-4 flex flex-wrap">

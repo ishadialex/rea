@@ -40,7 +40,7 @@ const AboutHero = () => {
         <div className="mx-auto max-w-[1200px]">
           <div className="relative aspect-[16/9] overflow-hidden rounded-lg">
             <Image
-              src="/images/about/about-property.jpg"
+              src="/images/about/about-hero.jpg"
               alt="Modern luxury property"
               fill
               className="object-cover"

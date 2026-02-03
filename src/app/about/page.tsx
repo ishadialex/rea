@@ -22,7 +22,7 @@ const AboutPage = () => {
       /> */}
       <br />
        <AboutHero />
-      <WhoWeAre />
+      {/* <WhoWeAre /> */}
       <OurMission />
       {/* <AboutSectionOne />
       <AboutSectionTwo /> */}
