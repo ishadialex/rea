@@ -146,15 +146,22 @@ const Team = () => {
         @keyframes slideIn {
           from {
             opacity: 0;
-            transform: translateX(50px);
+            transform: translate3d(50px, 0, 0);
           }
           to {
             opacity: 1;
-            transform: translateX(0);
+            transform: translate3d(0, 0, 0);
           }
         }
         .animate-slideIn {
           animation: slideIn 0.5s ease-out;
+          will-change: transform, opacity;
+          transform: translateZ(0);
+          backface-visibility: hidden;
+        }
+        .carousel-container {
+          contain: layout style paint;
+          transform: translateZ(0);
         }
       `}</style>
       <div className="container">
@@ -169,7 +176,7 @@ const Team = () => {
 
         {/* Team Carousel */}
         <div
-          className="relative"
+          className="carousel-container relative overflow-hidden"
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
@@ -219,21 +226,23 @@ const Team = () => {
           )}
 
           {/* Team Cards - Responsive: 1 card on mobile, 2 on tablet, 3 on desktop */}
-          <div className="flex justify-center gap-4 md:gap-6">
+          <div className="flex justify-center gap-4 md:gap-6" style={{ minHeight: '540px' }}>
             {visibleMembers.map((member, index) => (
               <div
                 key={`${member.name}-${index}`}
-                className="group w-full max-w-[330px] h-[489px] rounded-lg bg-black p-6 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:border-2 hover:border-primary dark:bg-gray-900 animate-slideIn cursor-pointer md:p-8"
+                className="group w-full max-w-[330px] h-[489px] rounded-lg bg-black p-6 shadow-lg transition-transform duration-300 hover:scale-105 hover:shadow-2xl hover:border-2 hover:border-primary dark:bg-gray-900 animate-slideIn cursor-pointer md:p-8"
+                style={{ willChange: 'transform', transform: 'translateZ(0)', backfaceVisibility: 'hidden' }}
               >
                 {/* Profile Image */}
                 <div className="mb-8 flex justify-center">
-                  <div className="relative h-48 w-48 overflow-hidden rounded-full bg-white transition-transform duration-300 group-hover:scale-110">
+                  <div className="relative h-48 w-48 overflow-hidden rounded-full bg-white transition-transform duration-300 group-hover:scale-110" style={{ willChange: 'transform', transform: 'translateZ(0)' }}>
                     <Image
                       src={member.image}
                       alt={member.name}
                       fill
                       className="object-cover"
                       sizes="192px"
+                      priority={index === 0}
                     />
                   </div>
                 </div>

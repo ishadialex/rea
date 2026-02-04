@@ -5,30 +5,30 @@ import { useState, useEffect, useRef } from "react";
 interface Language {
   code: string;
   name: string;
-  flag: string;
+  countryCode: string;
 }
 
 const languages: Language[] = [
-  { code: "en", name: "English", flag: "🇺🇸" },
-  { code: "es", name: "Spanish", flag: "🇪🇸" },
-  { code: "fr", name: "French", flag: "🇫🇷" },
-  { code: "de", name: "German", flag: "🇩🇪" },
-  { code: "it", name: "Italian", flag: "🇮🇹" },
-  { code: "pt", name: "Portuguese", flag: "🇵🇹" },
-  { code: "ru", name: "Russian", flag: "🇷🇺" },
-  { code: "zh-CN", name: "Chinese", flag: "🇨🇳" },
-  { code: "ja", name: "Japanese", flag: "🇯🇵" },
-  { code: "ko", name: "Korean", flag: "🇰🇷" },
-  { code: "ar", name: "Arabic", flag: "🇸🇦" },
-  { code: "hi", name: "Hindi", flag: "🇮🇳" },
-  { code: "tr", name: "Turkish", flag: "🇹🇷" },
-  { code: "nl", name: "Dutch", flag: "🇳🇱" },
-  { code: "pl", name: "Polish", flag: "🇵🇱" },
-  { code: "sv", name: "Swedish", flag: "🇸🇪" },
-  { code: "no", name: "Norwegian", flag: "🇳🇴" },
-  { code: "da", name: "Danish", flag: "🇩🇰" },
-  { code: "fi", name: "Finnish", flag: "🇫🇮" },
-  { code: "el", name: "Greek", flag: "🇬🇷" },
+  { code: "en", name: "English", countryCode: "us" },
+  { code: "es", name: "Spanish", countryCode: "es" },
+  { code: "fr", name: "French", countryCode: "fr" },
+  { code: "de", name: "German", countryCode: "de" },
+  { code: "it", name: "Italian", countryCode: "it" },
+  { code: "pt", name: "Portuguese", countryCode: "pt" },
+  { code: "ru", name: "Russian", countryCode: "ru" },
+  { code: "zh-CN", name: "Chinese", countryCode: "cn" },
+  { code: "ja", name: "Japanese", countryCode: "jp" },
+  { code: "ko", name: "Korean", countryCode: "kr" },
+  { code: "ar", name: "Arabic", countryCode: "sa" },
+  { code: "hi", name: "Hindi", countryCode: "in" },
+  { code: "tr", name: "Turkish", countryCode: "tr" },
+  { code: "nl", name: "Dutch", countryCode: "nl" },
+  { code: "pl", name: "Polish", countryCode: "pl" },
+  { code: "sv", name: "Swedish", countryCode: "se" },
+  { code: "no", name: "Norwegian", countryCode: "no" },
+  { code: "da", name: "Danish", countryCode: "dk" },
+  { code: "fi", name: "Finnish", countryCode: "fi" },
+  { code: "el", name: "Greek", countryCode: "gr" },
 ];
 
 declare global {
@@ -41,9 +41,9 @@ declare global {
 const LanguageSelector = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState<Language>({
-    code: "",
-    name: "Language",
-    flag: ""
+    code: "en",
+    name: "English",
+    countryCode: "us"
   });
   const [isTranslateReady, setIsTranslateReady] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -61,6 +61,38 @@ const LanguageSelector = () => {
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Check for saved language on mount
+  useEffect(() => {
+    // Read Google Translate cookie to determine current language
+    const getCookie = (name: string) => {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop()?.split(';').shift();
+    };
+
+    // Try to get language from localStorage first (more reliable across domains)
+    const savedLangCode = localStorage.getItem('selectedLanguage');
+    if (savedLangCode) {
+      const language = languages.find(lang => lang.code === savedLangCode);
+      if (language) {
+        setSelectedLanguage(language);
+        return;
+      }
+    }
+
+    // Fallback to cookie
+    const googTransCookie = getCookie('googtrans');
+    if (googTransCookie) {
+      // Cookie format is /en/LANGCODE
+      const langCode = googTransCookie.split('/')[2];
+      const language = languages.find(lang => lang.code === langCode);
+      if (language) {
+        setSelectedLanguage(language);
+        localStorage.setItem('selectedLanguage', language.code);
+      }
+    }
   }, []);
 
   // Load Google Translate script
@@ -109,6 +141,9 @@ const LanguageSelector = () => {
     setSelectedLanguage(language);
     setIsOpen(false);
 
+    // Save to localStorage for persistence across domains
+    localStorage.setItem('selectedLanguage', language.code);
+
     // If selecting English, clear the translation and reload
     if (language.code === "en") {
       // Clear Google Translate cookies for all domains
@@ -116,6 +151,9 @@ const LanguageSelector = () => {
       document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
       document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${domain};`;
       document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${domain};`;
+
+      // Clear localStorage
+      localStorage.removeItem('selectedLanguage');
 
       // Reload to show original content
       window.location.reload();
@@ -143,12 +181,16 @@ const LanguageSelector = () => {
       {/* Custom Language Selector Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="notranslate flex items-center gap-2 rounded-lg px-3 py-2 text-base font-medium text-dark transition-all duration-300 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-800"
+        className="notranslate flex items-center gap-1 rounded-lg px-2 py-2 transition-all duration-300 hover:bg-gray-100 dark:hover:bg-gray-800"
         aria-label="Select Language"
       >
-        <span className="notranslate">{selectedLanguage.name}</span>
+        <img
+          src={`https://flagcdn.com/w40/${selectedLanguage.countryCode}.png`}
+          alt={selectedLanguage.name}
+          className="notranslate h-5 w-7 rounded object-cover"
+        />
         <svg
-          className={`h-4 w-4 transition-transform ${
+          className={`h-3 w-3 transition-transform text-dark dark:text-white ${
             isOpen ? "rotate-180" : ""
           }`}
           fill="none"
@@ -166,19 +208,24 @@ const LanguageSelector = () => {
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="notranslate absolute right-0 top-full z-50 mt-2 w-64 max-h-96 overflow-y-auto rounded-lg border border-stroke bg-white shadow-lg dark:border-transparent dark:bg-gray-dark dark:shadow-two">
+        <div className="notranslate absolute right-0 top-full z-50 mt-2 w-48 max-h-96 overflow-y-auto rounded-lg border border-stroke bg-white shadow-lg dark:border-transparent dark:bg-gray-dark dark:shadow-two">
           <div className="p-2">
             {languages.map((language) => (
               <button
                 key={language.code}
                 onClick={() => handleLanguageChange(language)}
-                className={`notranslate flex w-full items-center justify-center rounded-md px-4 py-2 text-sm transition-all duration-200 ${
+                className={`notranslate flex w-full items-center gap-3 rounded-md px-3 py-2 transition-all duration-200 ${
                   selectedLanguage.code === language.code
-                    ? "bg-primary text-white"
-                    : "text-body-color hover:bg-gray-100 dark:text-body-color-dark dark:hover:bg-gray-800"
+                    ? "bg-primary"
+                    : "hover:bg-gray-100 dark:hover:bg-gray-800"
                 }`}
               >
-                <span className="notranslate">{language.name}</span>
+                <img
+                  src={`https://flagcdn.com/w40/${language.countryCode}.png`}
+                  alt={language.name}
+                  className="notranslate h-4 w-6 rounded object-cover"
+                />
+                <span className="notranslate text-sm text-body-color dark:text-body-color-dark">{language.name}</span>
               </button>
             ))}
           </div>

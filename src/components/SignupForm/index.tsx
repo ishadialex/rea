@@ -2,11 +2,14 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { PhoneInput } from "react-international-phone";
 import "react-international-phone/style.css";
 import "./phoneInput.css";
 
 const SignupForm = () => {
+  const router = useRouter();
+  const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -104,6 +107,47 @@ const SignupForm = () => {
     }
   };
 
+  // Handle form submission
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Validate all fields
+    if (!name.trim()) {
+      alert("Please enter your full name");
+      return;
+    }
+
+    if (!email || emailError) {
+      alert("Please enter a valid email address");
+      return;
+    }
+
+    if (!phone || phoneError) {
+      alert("Please enter a valid phone number");
+      return;
+    }
+
+    if (!password) {
+      alert("Please enter a password");
+      return;
+    }
+
+    if (!confirmPassword || passwordError) {
+      alert("Please confirm your password");
+      return;
+    }
+
+    // Check if terms checkbox is checked
+    const checkbox = document.getElementById("checkboxLabel") as HTMLInputElement;
+    if (!checkbox?.checked) {
+      alert("Please agree to the Terms and Conditions");
+      return;
+    }
+
+    // If all validations pass, redirect to OTP page
+    router.push(`/verify-otp?email=${encodeURIComponent(email)}`);
+  };
+
   return (
     <div className="shadow-three dark:bg-dark mx-auto max-w-[500px] rounded-sm bg-white px-6 py-10 sm:p-[60px]">
       <h3 className="mb-3 text-center text-2xl font-bold text-black sm:text-3xl dark:text-white">
@@ -170,7 +214,7 @@ const SignupForm = () => {
         </p>
         <span className="bg-body-color/50 hidden h-[1px] w-full max-w-[60px] sm:block"></span>
       </div>
-      <form>
+      <form onSubmit={handleSubmit}>
         <div className="mb-8">
           <label
             htmlFor="name"
@@ -183,6 +227,8 @@ const SignupForm = () => {
             type="text"
             name="name"
             placeholder="Enter your full name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
             className="border-stroke dark:text-body-color-dark dark:shadow-two text-body-color focus:border-primary dark:focus:border-primary w-full rounded-xs border bg-[#f8f8f8] px-6 py-3 text-base outline-hidden transition-all duration-300 dark:border-transparent dark:bg-[#2C303B] dark:focus:shadow-none"
           />
         </div>
@@ -320,7 +366,7 @@ const SignupForm = () => {
           </label>
         </div>
         <div className="mb-6">
-          <button className="shadow-submit dark:shadow-submit-dark bg-primary hover:bg-primary/90 flex w-full items-center justify-center rounded-xs px-9 py-4 text-base font-medium text-white duration-300">
+          <button type="submit" className="shadow-submit dark:shadow-submit-dark bg-primary hover:bg-primary/90 flex w-full items-center justify-center rounded-xs px-9 py-4 text-base font-medium text-white duration-300">
             Sign up
           </button>
         </div>

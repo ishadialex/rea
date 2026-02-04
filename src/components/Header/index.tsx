@@ -37,6 +37,13 @@ const Header = () => {
     }
   };
 
+  // Reset submenu when mobile menu closes
+  useEffect(() => {
+    if (!navbarOpen) {
+      setOpenIndex(-1);
+    }
+  }, [navbarOpen]);
+
   const usePathName = usePathname();
 
   return (
@@ -104,6 +111,7 @@ const Header = () => {
                         {menuItem.path ? (
                           <Link
                             href={menuItem.path}
+                            onClick={() => setNavbarOpen(false)}
                             className={`flex py-2 text-base lg:mr-0 lg:inline-flex lg:px-0 lg:py-6 ${
                               usePathName === menuItem.path
                                 ? "text-primary dark:text-white"
@@ -142,6 +150,7 @@ const Header = () => {
                                     key={index}
                                     target="_blank"
                                     rel="noopener noreferrer"
+                                    onClick={() => setNavbarOpen(false)}
                                     className="text-dark hover:text-primary block rounded-sm py-2.5 text-sm lg:px-3 dark:text-white/70 dark:hover:text-white"
                                   >
                                     {submenuItem.title}
@@ -150,6 +159,7 @@ const Header = () => {
                                   <Link
                                     href={submenuItem.path}
                                     key={index}
+                                    onClick={() => setNavbarOpen(false)}
                                     className="text-dark hover:text-primary block rounded-sm py-2.5 text-sm lg:px-3 dark:text-white/70 dark:hover:text-white"
                                   >
                                     {submenuItem.title}
@@ -161,6 +171,26 @@ const Header = () => {
                         )}
                       </li>
                     ))}
+
+                    {/* Mobile Sign In and Sign Up Links */}
+                    <li className="lg:hidden">
+                      <Link
+                        href="/signin"
+                        onClick={() => setNavbarOpen(false)}
+                        className="text-dark hover:text-primary flex py-2 text-base dark:text-white/70 dark:hover:text-white"
+                      >
+                        Sign In
+                      </Link>
+                    </li>
+                    <li className="lg:hidden">
+                      <Link
+                        href="/signup"
+                        onClick={() => setNavbarOpen(false)}
+                        className="ease-in-up shadow-btn hover:shadow-btn-hover bg-primary hover:bg-primary/90 mt-2 block rounded-xs px-8 py-3 text-center text-base font-medium text-white transition duration-300"
+                      >
+                        Sign Up
+                      </Link>
+                    </li>
                   </ul>
                 </nav>
               </div>
