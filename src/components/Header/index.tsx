@@ -61,7 +61,9 @@ const Header = () => {
   ) => {
     // Check if user already has verified access
     if (hasVerifiedAccess()) {
-      // Allow access
+      // Close mobile menu if open (important for iOS)
+      setNavbarOpen(false);
+      // Allow access - link will open in new tab
       return;
     }
 
@@ -258,7 +260,7 @@ const Header = () => {
                 >
                   Sign Up
                 </Link>
-                <LanguageSelector />
+                <LanguageSelector onMenuClose={() => setNavbarOpen(false)} />
                 <div>
                   <ThemeToggler />
                 </div>
@@ -267,6 +269,15 @@ const Header = () => {
           </div>
         </div>
       </header>
+
+      {/* Mobile Menu Backdrop - Click to close */}
+      {navbarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm lg:hidden"
+          onClick={() => setNavbarOpen(false)}
+          aria-hidden="true"
+        />
+      )}
 
       {/* Passcode Modal for Document Access */}
       <PasscodeModal

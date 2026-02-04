@@ -38,7 +38,11 @@ declare global {
   }
 }
 
-const LanguageSelector = () => {
+interface LanguageSelectorProps {
+  onMenuClose?: () => void;
+}
+
+const LanguageSelector = ({ onMenuClose }: LanguageSelectorProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState<Language>({
     code: "en",
@@ -180,7 +184,13 @@ const LanguageSelector = () => {
 
       {/* Custom Language Selector Button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          setIsOpen(!isOpen);
+          // Close mobile menu if callback is provided
+          if (onMenuClose) {
+            onMenuClose();
+          }
+        }}
         className="notranslate flex items-center gap-1 rounded-lg px-2 py-2 transition-all duration-300 hover:bg-gray-100 dark:hover:bg-gray-800"
         aria-label="Select Language"
       >

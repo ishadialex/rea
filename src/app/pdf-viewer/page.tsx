@@ -1,11 +1,18 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
 
 function PDFViewerContent() {
   const searchParams = useSearchParams();
   const pdfFile = searchParams.get("file");
+  const [isIOS, setIsIOS] = useState(false);
+
+  useEffect(() => {
+    // Detect iOS devices (iPhone, iPad, iPod)
+    const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    setIsIOS(iOS);
+  }, []);
 
   if (!pdfFile) {
     return (
@@ -27,6 +34,9 @@ function PDFViewerContent() {
     link.click();
     document.body.removeChild(link);
   };
+
+  // Add PDF parameters for better iOS compatibility
+  const pdfUrl = `${pdfFile}#toolbar=1&navpanes=1&scrollbar=1&page=1&view=FitH`;
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-dark">
@@ -55,13 +65,47 @@ function PDFViewerContent() {
 
       {/* PDF Viewer */}
       <div className="mx-auto max-w-full p-1 sm:p-2 md:p-4">
-        <div className="overflow-auto rounded-sm bg-white shadow-lg sm:rounded-md md:rounded-lg" style={{ WebkitOverflowScrolling: 'touch' }}>
-          <iframe
-            src={pdfFile}
-            className="h-[calc(100vh-60px)] w-full sm:h-[calc(100vh-80px)] md:h-[calc(100vh-120px)]"
-            title="PDF Viewer"
-            style={{ border: 'none', touchAction: 'manipulation' }}
-          />
+        <div className="rounded-sm bg-white shadow-lg sm:rounded-md md:rounded-lg">
+          {isIOS ? (
+            // iOS-specific rendering using object tag with embed fallback
+            <div className="relative" style={{ height: 'calc(100vh - 80px)', overflow: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <object
+                data={pdfUrl}
+                type="application/pdf"
+                className="h-full w-full"
+                style={{ minHeight: '100vh' }}
+              >
+                <embed
+                  src={pdfUrl}
+                  type="application/pdf"
+                  className="h-full w-full"
+                  style={{ minHeight: '100vh' }}
+                />
+                {/* Fallback for browsers that don't support embed */}
+                <div className="flex flex-col items-center justify-center p-8 text-center">
+                  <p className="mb-4 text-lg text-body-color dark:text-body-color-dark">
+                    Unable to display PDF in browser.
+                  </p>
+                  <button
+                    onClick={handleDownload}
+                    className="rounded-md bg-primary px-6 py-3 text-base font-medium text-white transition hover:bg-primary/80"
+                  >
+                    Download PDF
+                  </button>
+                </div>
+              </object>
+            </div>
+          ) : (
+            // Android and other devices - use iframe
+            <div style={{ height: 'calc(100vh - 80px)', overflow: 'hidden' }}>
+              <iframe
+                src={pdfUrl}
+                className="h-full w-full"
+                title="PDF Viewer"
+                style={{ border: 'none' }}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

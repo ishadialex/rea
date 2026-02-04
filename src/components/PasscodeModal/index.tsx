@@ -30,14 +30,16 @@ const PasscodeModal = ({
   }, [isOpen]);
 
   // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
 
-    // Simulate a small delay for better UX
-    setTimeout(() => {
-      if (verifyPasscode(passcode)) {
+    try {
+      // Verify the passcode (now async with SHA-256 hashing)
+      const isValid = await verifyPasscode(passcode);
+
+      if (isValid) {
         // Store verification in session
         storeVerifiedAccess();
         // Call success callback
@@ -47,8 +49,12 @@ const PasscodeModal = ({
       } else {
         setError("Invalid access code. Please try again or contact support.");
       }
+    } catch (error) {
+      console.error("Error verifying passcode:", error);
+      setError("An error occurred. Please try again.");
+    } finally {
       setIsLoading(false);
-    }, 500);
+    }
   };
 
   // Close modal on backdrop click

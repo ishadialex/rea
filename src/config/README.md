@@ -1,48 +1,80 @@
 # Document Passcode Configuration
 
-This directory contains the configuration for document access passcodes.
+This directory contains the configuration for document access passcodes with SHA-256 encryption.
 
-## How to Change Passcodes
+## 🔒 Security Overview
 
-To update or change the document access passcodes:
+Passcodes are now **hashed using SHA-256** for enhanced security. The configuration file stores only the hashed values, not the plain text passcodes.
 
-1. Open the file: `src/config/document-passcodes.ts`
+## 🚀 Initial Setup (REQUIRED)
 
-2. Edit the `DOCUMENT_PASSCODES` array:
+**⚠️ You must complete this setup before the passcode system will work!**
+
+1. **Navigate to the Hash Generator Tool:**
+   - Open your browser and go to: `/admin/generate-hash`
+
+2. **Generate Hashes for Your Passcodes:**
+   - Enter each of your 10 passcodes one by one:
+     - ACCESS2025
+     - ALVARADO123
+     - PROPERTY456
+     - INVEST789
+     - RENTAL2025
+     - ARBITRAGE99
+     - GOLDEN777
+     - UNITS2025
+     - DOCS4321
+     - SECURE888
+   - Click "Generate Hash" for each one
+   - Copy the generated hash
+
+3. **Update the Config File:**
+   - Open: `src/config/document-passcodes.ts`
+   - Replace each `PLACEHOLDER_HASH_X` with the corresponding real hash
+   - Keep the comments to remember which passcode each hash represents
+
+4. **Save and Test:**
+   - Save the file
+   - Clear your browser's session storage
+   - Test by clicking a PDF in the Documents menu
+
+## How to Add or Change Passcodes
+
+### Method 1: Using the Admin Tool (Recommended)
+
+1. Navigate to `/admin/generate-hash` in your browser
+2. Enter your new passcode (e.g., "NEWCODE2025")
+3. Click "Generate Hash"
+4. Copy the generated hash (64-character hex string)
+5. Open `src/config/document-passcodes.ts`
+6. Add the hash to the `DOCUMENT_PASSCODES` array:
    ```typescript
    export const DOCUMENT_PASSCODES = [
-     "YOUR_CODE_1",
-     "YOUR_CODE_2",
-     "YOUR_CODE_3",
-     // ... add up to 10 codes
+     "abc123def456...", // NEWCODE2025
+     // ... other hashes
    ];
    ```
+7. Save the file - changes take effect immediately
 
-3. Save the file. The changes will take effect immediately.
+### Method 2: Using Browser Console
 
-## Current Passcodes
-
-The system currently supports 10 passcodes. Users can use any of these codes to access the documents.
-
-**Default codes (CHANGE THESE!):**
-- ACCESS2025
-- ALVARADO123
-- PROPERTY456
-- INVEST789
-- RENTAL2025
-- ARBITRAGE99
-- GOLDEN777
-- UNITS2025
-- DOCS4321
-- SECURE888
+1. Open your website in a browser
+2. Open Developer Tools (F12)
+3. Go to the Console tab
+4. Run this command:
+   ```javascript
+   const { generatePasscodeHash } = await import('/src/utils/passcode');
+   await generatePasscodeHash("YOUR_PASSCODE");
+   ```
+5. Copy the returned hash and add it to the config file
 
 ## Support Contact Information
 
-You can also update the support contact information that users see when they don't have an access code:
+Update the support contact information shown to users:
 
 ```typescript
 export const SUPPORT_INFO = {
-  email: "info@goldenunits.com",
+  email: "info@alvaradoassociatepartners.com",
   phone: "(424) 519-5003",
   message: "Please contact our support team to obtain an access code for our documents.",
 };
@@ -50,16 +82,48 @@ export const SUPPORT_INFO = {
 
 ## Security Features
 
-- Passcodes are case-insensitive
-- Access is verified and stored in the browser's session storage
-- Verification expires after 24 hours
-- Users must re-enter the passcode after their session expires
-- The modal prevents direct access to PDFs without verification
+- ✅ **SHA-256 Hashing**: Passcodes are hashed, not stored in plain text
+- ✅ **Case-Insensitive**: Passcodes converted to uppercase before hashing
+- ✅ **Session Storage**: Access verified and stored in browser session
+- ✅ **Auto-Expiration**: Verification expires after 24 hours
+- ✅ **Modal Protection**: Prevents direct PDF access without verification
 
 ## Testing
 
-After updating passcodes, test by:
-1. Clearing your browser's session storage (Developer Tools > Application > Session Storage > Clear)
-2. Clicking on any PDF in the Documents menu
-3. Entering one of your new passcodes
-4. Verifying the document opens successfully
+After updating passcodes:
+
+1. **Clear Session Storage:**
+   - Open Developer Tools (F12)
+   - Go to Application > Session Storage
+   - Clear all entries
+
+2. **Test Access:**
+   - Click any PDF in the Documents menu
+   - Enter the passcode (plain text, not the hash!)
+   - Verify the document opens successfully
+
+3. **Verify Hash:**
+   - If a passcode doesn't work, regenerate its hash at `/admin/generate-hash`
+   - Ensure you're entering the exact passcode you hashed
+
+## Admin Tool Security
+
+**Important:** The hash generator tool at `/admin/generate-hash` is for administrative use only.
+
+In production, consider:
+- Removing the `/admin/generate-hash` page after setup
+- Protecting it with authentication
+- Using it only on localhost/development
+
+## Troubleshooting
+
+**Passcode not working?**
+- Verify the hash in the config matches the hash from the generator
+- Check browser console for errors
+- Ensure passcode is spelled correctly (case doesn't matter)
+- Try regenerating the hash
+
+**Need to reset everything?**
+- Replace all hashes in `DOCUMENT_PASSCODES` array
+- Clear browser session storage
+- Generate fresh hashes for your passcodes
