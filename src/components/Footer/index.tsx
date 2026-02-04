@@ -5,12 +5,13 @@ import { usePathname } from "next/navigation";
 
 const Footer = () => {
   const pathname = usePathname();
-  const isContactPage = pathname === "/contact";
+  const hideCtaPages = ["/contact", "/signin", "/signup", "/forgot-password"];
+  const shouldHideCta = hideCtaPages.includes(pathname);
 
   return (
     <>
-      {/* Call to Action Section - Hidden on Contact Page */}
-      {!isContactPage && (
+      {/* Call to Action Section - Hidden on specific pages */}
+      {!shouldHideCta && (
         <section className="bg-white py-10 dark:bg-gray-dark md:py-12 lg:py-16">
           <div className="container px-4 md:px-8 lg:px-12">
             <div className="relative mx-auto max-w-[1200px] overflow-hidden rounded-2xl bg-black px-8 py-16 text-center dark:bg-black md:px-12 md:py-20 lg:px-16 lg:py-24">
@@ -45,7 +46,7 @@ const Footer = () => {
         </section>
       )}
 
-      <footer className="relative z-10 bg-black py-16 md:py-20 lg:py-24">
+      <footer className="relative z-10 rounded-t-3xl border-t-2 border-gray-700 bg-black py-16 shadow-2xl md:py-20 lg:py-24 dark:border-gray-600">
         <div className="container">
           {/* Logo */}
           <div className="mb-8 flex justify-center">

@@ -106,12 +106,21 @@ const Header = () => {
                   sticky ? "py-5 lg:py-2" : "py-8"
                 } `}
               >
+                {/* Light mode logo (with black text) */}
+                <Image
+                  src="/images/logo/A-logobbb.png"
+                  alt="logo"
+                  width={140}
+                  height={30}
+                  className="w-full block dark:hidden"
+                />
+                {/* Dark mode logo (with white text) */}
                 <Image
                   src="/images/logo/A-logo.png"
                   alt="logo"
                   width={140}
                   height={30}
-                  className="w-full"
+                  className="w-full hidden dark:block"
                 />
               </Link>
             </div>
@@ -121,7 +130,7 @@ const Header = () => {
                   onClick={navbarToggleHandler}
                   id="navbarToggler"
                   aria-label="Mobile Menu"
-                  className="ring-primary absolute top-1/2 right-4 block translate-y-[-50%] rounded-lg px-3 py-[6px] focus:ring-2 lg:hidden"
+                  className="absolute top-1/2 right-4 block translate-y-[-50%] rounded-lg px-3 py-[6px] outline-none lg:hidden"
                 >
                   <span
                     className={`relative my-1.5 block h-0.5 w-[30px] bg-black transition-all duration-300 dark:bg-white ${
