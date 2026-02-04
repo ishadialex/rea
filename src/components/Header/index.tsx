@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import ThemeToggler from "./ThemeToggler";
 import LanguageSelector from "./LanguageSelector";
 import menuData from "./menuData";
+import PasscodeModal from "@/components/PasscodeModal";
+import { hasVerifiedAccess } from "@/utils/passcode";
 
 const Header = () => {
   // Navbar toggle
@@ -43,6 +45,44 @@ const Header = () => {
       setOpenIndex(-1);
     }
   }, [navbarOpen]);
+
+  // Passcode modal for document access
+  const [isPasscodeModalOpen, setIsPasscodeModalOpen] = useState(false);
+  const [pendingDocument, setPendingDocument] = useState<{
+    path: string;
+    title: string;
+  } | null>(null);
+
+  // Handle document link click
+  const handleDocumentClick = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    path: string,
+    title: string
+  ) => {
+    // Check if user already has verified access
+    if (hasVerifiedAccess()) {
+      // Allow access
+      return;
+    }
+
+    // Prevent default navigation
+    e.preventDefault();
+    // Store the document info
+    setPendingDocument({ path, title });
+    // Open passcode modal
+    setIsPasscodeModalOpen(true);
+    // Close mobile menu if open
+    setNavbarOpen(false);
+  };
+
+  // Handle successful passcode verification
+  const handlePasscodeSuccess = () => {
+    if (pendingDocument) {
+      // Open the document in a new tab
+      window.open(pendingDocument.path, "_blank");
+      setPendingDocument(null);
+    }
+  };
 
   const usePathName = usePathname();
 
@@ -150,7 +190,18 @@ const Header = () => {
                                     key={index}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    onClick={() => setNavbarOpen(false)}
+                                    onClick={(e) => {
+                                      // Check if this is a PDF document
+                                      if (submenuItem.path.includes("/pdf-viewer")) {
+                                        handleDocumentClick(
+                                          e,
+                                          submenuItem.path,
+                                          submenuItem.title
+                                        );
+                                      } else {
+                                        setNavbarOpen(false);
+                                      }
+                                    }}
                                     className="text-dark hover:text-primary block rounded-sm py-2.5 text-sm lg:px-3 dark:text-white/70 dark:hover:text-white"
                                   >
                                     {submenuItem.title}
@@ -216,6 +267,17 @@ const Header = () => {
           </div>
         </div>
       </header>
+
+      {/* Passcode Modal for Document Access */}
+      <PasscodeModal
+        isOpen={isPasscodeModalOpen}
+        onClose={() => {
+          setIsPasscodeModalOpen(false);
+          setPendingDocument(null);
+        }}
+        onSuccess={handlePasscodeSuccess}
+        documentTitle={pendingDocument?.title || "Document"}
+      />
     </>
   );
 };
