@@ -40,13 +40,13 @@ const menuData: Menu[] = [
       {
         id: 31,
         title: "HMO",
-        path: "/blog-details",
+        path: "/hmo",
         newTab: false,
       },
       {
         id: 32,
         title: "Listings",
-        path: "/blog-details",
+        path: "/listings",
         newTab: false,
       },
     ],
