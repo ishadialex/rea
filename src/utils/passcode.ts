@@ -56,7 +56,7 @@ export async function generatePasscodeHash(passcode: string): Promise<string> {
 
 /**
  * Stores the verified passcode in session storage
- * This allows access during the current browser session
+ * This allows access for 1 minute
  */
 export function storeVerifiedAccess(): void {
   if (typeof window !== "undefined") {
@@ -67,7 +67,7 @@ export function storeVerifiedAccess(): void {
 
 /**
  * Checks if the user has been verified in the current session
- * Verification expires after 24 hours
+ * Verification expires after 1 minute
  */
 export function hasVerifiedAccess(): boolean {
   if (typeof window === "undefined") return false;
@@ -77,11 +77,11 @@ export function hasVerifiedAccess(): boolean {
 
   if (!verified || !verifiedTime) return false;
 
-  // Check if verification is still valid (24 hours)
+  // Check if verification is still valid (1 minute)
   const timeElapsed = Date.now() - parseInt(verifiedTime);
-  const twentyFourHours = 24 * 60 * 60 * 1000;
+  const oneMinute = 60 * 1000;
 
-  if (timeElapsed > twentyFourHours) {
+  if (timeElapsed > oneMinute) {
     // Clear expired verification
     sessionStorage.removeItem("document_access_verified");
     sessionStorage.removeItem("document_access_time");

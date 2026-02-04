@@ -159,3 +159,26 @@ body {
 .translated-ltr {
   margin-top: 0 !important;
 }
+
+/* Leaflet Map Styles */
+.leaflet-container {
+  font-family: "Inter", sans-serif;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 0.5rem;
+}
+
+.leaflet-popup-content {
+  margin: 0;
+  padding: 0;
+}
+
+/* Dark mode support for map */
+.dark .leaflet-container {
+  background-color: #1e232e;
+}
+
+.dark .leaflet-tile {
+  filter: brightness(0.8) contrast(1.2);
+}

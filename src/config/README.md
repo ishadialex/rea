@@ -85,7 +85,7 @@ export const SUPPORT_INFO = {
 - ✅ **SHA-256 Hashing**: Passcodes are hashed, not stored in plain text
 - ✅ **Case-Insensitive**: Passcodes converted to uppercase before hashing
 - ✅ **Session Storage**: Access verified and stored in browser session
-- ✅ **Auto-Expiration**: Verification expires after 24 hours
+- ✅ **Auto-Expiration**: Verification expires after 1 minute
 - ✅ **Modal Protection**: Prevents direct PDF access without verification
 
 ## Testing
