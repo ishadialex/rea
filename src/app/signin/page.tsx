@@ -1,16 +1,88 @@
+"use client";
+
 import Link from "next/link";
+import { useState, FormEvent, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import LoadingSpinner from "@/components/LoadingSpinner";
+import { loadReCaptchaScript, executeReCaptcha } from "@/utils/recaptcha";
 
-import { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "Sign In Page | Free Next.js Template for Startup and SaaS",
-  description: "This is Sign In Page for Startup Nextjs Template",
-  // other metadata
+// Hardcoded credentials
+const VALID_CREDENTIALS = {
+  email: "admin@alvaradoassociatepartners.com",
+  password: "admin123",
 };
 
 const SigninPage = () => {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [recaptchaLoaded, setRecaptchaLoaded] = useState(false);
+
+  const RECAPTCHA_SITE_KEY =
+    process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ||
+    "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"; // Test key
+
+  // Load reCAPTCHA script on mount
+  useEffect(() => {
+    loadReCaptchaScript(RECAPTCHA_SITE_KEY)
+      .then(() => {
+        setRecaptchaLoaded(true);
+      })
+      .catch((error) => {
+        console.error("Failed to load reCAPTCHA:", error);
+        setError("Failed to load security verification. Please refresh the page.");
+      });
+  }, [RECAPTCHA_SITE_KEY]);
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError("");
+
+    if (!recaptchaLoaded) {
+      setError("Security verification not ready. Please try again.");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Execute reCAPTCHA v3
+      const token = await executeReCaptcha(RECAPTCHA_SITE_KEY, "login");
+
+      // In a real application, you would send this token to your backend
+      // for verification. For now, we'll just proceed with login.
+      console.log("reCAPTCHA token:", token);
+
+      // Simulate a slight delay for better UX
+      setTimeout(() => {
+        if (
+          email === VALID_CREDENTIALS.email &&
+          password === VALID_CREDENTIALS.password
+        ) {
+          // Store login state in localStorage
+          localStorage.setItem("isLoggedIn", "true");
+          localStorage.setItem("userEmail", email);
+
+          // Redirect to dashboard
+          router.push("/dashboard");
+        } else {
+          setError("Invalid email or password. Please try again.");
+          setIsLoading(false);
+        }
+      }, 1500);
+    } catch (error) {
+      console.error("reCAPTCHA error:", error);
+      setError("Security verification failed. Please try again.");
+      setIsLoading(false);
+    }
+  };
   return (
     <>
+      {/* Loading Spinner */}
+      {isLoading && <LoadingSpinner />}
+
       <section className="relative z-10 overflow-hidden pt-36 pb-16 md:pb-20 lg:pt-[180px] lg:pb-28">
         <div className="container">
           <div className="-mx-4 flex flex-wrap">
@@ -80,7 +152,12 @@ const SigninPage = () => {
                   </p>
                   <span className="bg-body-color/50 hidden h-[1px] w-full max-w-[70px] sm:block"></span>
                 </div>
-                <form>
+                <form onSubmit={handleSubmit}>
+                  {error && (
+                    <div className="mb-6 rounded-lg bg-red-100 p-4 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                      {error}
+                    </div>
+                  )}
                   <div className="mb-8">
                     <label
                       htmlFor="email"
@@ -90,8 +167,12 @@ const SigninPage = () => {
                     </label>
                     <input
                       type="email"
+                      id="email"
                       name="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       placeholder="Enter your Email"
+                      required
                       className="border-stroke dark:text-body-color-dark dark:shadow-two text-body-color focus:border-primary dark:focus:border-primary w-full rounded-xs border bg-[#f8f8f8] px-6 py-3 text-base outline-hidden transition-all duration-300 dark:border-transparent dark:bg-[#2C303B] dark:focus:shadow-none"
                     />
                   </div>
@@ -104,11 +185,16 @@ const SigninPage = () => {
                     </label>
                     <input
                       type="password"
+                      id="password"
                       name="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
                       placeholder="Enter your Password"
+                      required
                       className="border-stroke dark:text-body-color-dark dark:shadow-two text-body-color focus:border-primary dark:focus:border-primary w-full rounded-xs border bg-[#f8f8f8] px-6 py-3 text-base outline-hidden transition-all duration-300 dark:border-transparent dark:bg-[#2C303B] dark:focus:shadow-none"
                     />
                   </div>
+
                   <div className="mb-8 flex flex-col justify-between sm:flex-row sm:items-center">
                     <div className="mb-4 sm:mb-0">
                       <label
@@ -153,9 +239,49 @@ const SigninPage = () => {
                     </div>
                   </div>
                   <div className="mb-6">
-                    <button className="shadow-submit dark:shadow-submit-dark bg-primary hover:bg-primary/90 flex w-full items-center justify-center rounded-xs px-9 py-4 text-base font-medium text-white duration-300">
-                      Sign in
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="shadow-submit dark:shadow-submit-dark bg-primary hover:bg-primary/90 flex w-full items-center justify-center rounded-xs px-9 py-4 text-base font-medium text-white duration-300 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {isLoading ? "Signing in..." : "Sign in"}
                     </button>
+                  </div>
+
+                  {/* Demo credentials info */}
+                  <div className="mb-6 rounded-lg bg-blue-50 p-4 text-sm dark:bg-blue-900/20">
+                    <p className="mb-2 font-semibold text-blue-900 dark:text-blue-300">
+                      Demo Credentials:
+                    </p>
+                    <p className="text-blue-800 dark:text-blue-400">
+                      Email: admin@alvaradoassociatepartners.com
+                    </p>
+                    <p className="text-blue-800 dark:text-blue-400">
+                      Password: admin123
+                    </p>
+                  </div>
+
+                  {/* reCAPTCHA v3 notice */}
+                  <div className="text-center text-xs text-body-color dark:text-body-color-dark">
+                    This site is protected by reCAPTCHA and the Google{" "}
+                    <a
+                      href="https://policies.google.com/privacy"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      Privacy Policy
+                    </a>{" "}
+                    and{" "}
+                    <a
+                      href="https://policies.google.com/terms"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      Terms of Service
+                    </a>{" "}
+                    apply.
                   </div>
                 </form>
                 <p className="text-body-color text-center text-base font-medium">

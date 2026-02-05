@@ -8,7 +8,9 @@
       "Bash(timeout /t 5)",
       "Bash(netstat:*)",
       "Bash(findstr:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(tree:*)",
+      "Bash(find:*)"
     ]
   }
 }

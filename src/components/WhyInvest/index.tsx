@@ -1,7 +1,8 @@
 "use client";
 
 const WhyInvest = () => {
-  const BuildingIcon = () => (
+  // Icon 1: Leverage/Growth
+  const LeverageIcon = () => (
     <svg
       width="40"
       height="40"
@@ -10,44 +11,135 @@ const WhyInvest = () => {
       xmlns="http://www.w3.org/2000/svg"
       className="stroke-current"
     >
-      <rect x="12" y="8" width="16" height="28" strokeWidth="2" />
-      <rect x="16" y="12" width="2" height="3" strokeWidth="1.5" />
-      <rect x="22" y="12" width="2" height="3" strokeWidth="1.5" />
-      <rect x="16" y="18" width="2" height="3" strokeWidth="1.5" />
-      <rect x="22" y="18" width="2" height="3" strokeWidth="1.5" />
-      <rect x="16" y="24" width="2" height="3" strokeWidth="1.5" />
-      <rect x="22" y="24" width="2" height="3" strokeWidth="1.5" />
-      <rect x="18" y="30" width="4" height="6" strokeWidth="1.5" />
+      <path
+        d="M8 32L15 22L22 27L32 12"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M26 12H32V18"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="15" cy="22" r="2" fill="currentColor" />
+      <circle cx="22" cy="27" r="2" fill="currentColor" />
+    </svg>
+  );
+
+  // Icon 2: Cash Flow/Money
+  const CashFlowIcon = () => (
+    <svg
+      width="40"
+      height="40"
+      viewBox="0 0 40 40"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="stroke-current"
+    >
+      <rect x="6" y="14" width="28" height="16" rx="2" strokeWidth="2" />
+      <circle cx="20" cy="22" r="4" strokeWidth="2" />
+      <path d="M10 10L30 10" strokeWidth="2" strokeLinecap="round" />
+      <path d="M12 6L28 6" strokeWidth="2" strokeLinecap="round" />
+      <path d="M32 22H34" strokeWidth="2" strokeLinecap="round" />
+      <path d="M6 22H4" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+
+  // Icon 3: Property Ownership/House with Key
+  const OwnershipIcon = () => (
+    <svg
+      width="40"
+      height="40"
+      viewBox="0 0 40 40"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="stroke-current"
+    >
+      <path
+        d="M6 18L20 6L34 18V32C34 33.1046 33.1046 34 32 34H8C6.89543 34 6 33.1046 6 32V18Z"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="20" cy="22" r="3" strokeWidth="2" />
+      <path d="M20 25V28" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+
+  // Icon 4: Hands-Off/Automation
+  const HandsOffIcon = () => (
+    <svg
+      width="40"
+      height="40"
+      viewBox="0 0 40 40"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="stroke-current"
+    >
+      <circle cx="20" cy="20" r="14" strokeWidth="2" />
+      <path
+        d="M12 20L17 25L28 14"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+
+  // Icon 5: Diversification/Shield
+  const DiversificationIcon = () => (
+    <svg
+      width="40"
+      height="40"
+      viewBox="0 0 40 40"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="stroke-current"
+    >
+      <path
+        d="M20 6L8 11V19C8 26 12 31 20 34C28 31 32 26 32 19V11L20 6Z"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M14 20L18 24L26 16"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 
   const benefits = [
     {
-      icon: <BuildingIcon />,
+      icon: <LeverageIcon />,
       title: "Leverage That Multiplies Your Returns",
       description:
         "Rather than purchasing properties outright, we take a smarter approach strategically utilizing mortgages to acquire high-performing Airbnb units in top-tier locations. This means we can control valuable real estate assets with significantly less upfront capital. By funding just a fraction of the property's value, you gain access to the full earning potential of the asset. This financial leverage not only amplifies your return on investment but also enables diversification across multiple properties, accelerating wealth creation and passive income generation. It's a powerful way to scale your portfolio without overextending your capital.",
     },
     {
-      icon: <BuildingIcon />,
+      icon: <CashFlowIcon />,
       title: "Steady Monthly Cash Flow",
       description:
         "Our strategically selected, fully furnished Airbnb units are located in high-demand travel destinations known for strong year-round occupancy. These properties are professionally managed to ensure exceptional guest experiences and maintain high booking rates. Each month, the income generated from bookings is first used to cover the mortgage, property maintenance, and operational expenses. The remaining profit is then distributed directly to you, offering a stable, predictable source of passive income month after month. This model ensures you benefit from both consistent cash flow and long-term property appreciation without the day-to-day responsibilities.",
     },
     {
-      icon: <BuildingIcon />,
+      icon: <OwnershipIcon />,
       title: "Real Ownership, Real Wealth",
       description:
         "Unlike traditional rental income models that feel like subsidizing someone else's property, our strategy is rooted in true asset ownership. With our mortgage-backed Airbnb investment model, you're not just generating monthly cash flow. You're actively building equity in appreciating real estate. Each payment chips away at the mortgage balance, steadily increasing your share of ownership. Over time, this transforms short-term gains into lasting wealth, secured by a physical, income-generating asset. This is how you turn passive income into real financial freedom anchored in property, powered by smart investment.",
     },
     {
-      icon: <BuildingIcon />,
+      icon: <HandsOffIcon />,
       title: "A Truly Hands-Off Investment Experience",
       description:
         "From the initial search to ongoing operations, we provide a seamless and fully managed investment solution. Our team identifies high-performing short-term rental markets, acquires premium properties, and secures favorable mortgage terms on your behalf. We furnish each unit with stylish, Airbnb-optimized interiors and launch professionally crafted listings designed to maximize visibility and occupancy. But we don't stop there. Our operations team handles every aspect of guest management, from round-the-clock communication and smart pricing algorithms to thorough cleaning and ongoing maintenance. This end-to-end service allows you to enjoy passive monthly income and long-term asset growth without ever needing to be involved in the day-to-day. It's a stress-free, time-free investment designed for modern investors who want results without responsibilities.",
     },
     {
-      icon: <BuildingIcon />,
+      icon: <DiversificationIcon />,
       title: "Bonus Benefit: Diversification And Risk Mitigation",
       description:
         "Real estate has long been regarded as one of the most reliable and stable asset classes, known for its ability to preserve and grow wealth over time. When paired with the dynamic and adaptable nature of the short-term rental market, your investment benefits from both steady long-term value and agile income potential. This dual advantage not only diversifies your portfolio but also helps shield it from the unpredictability and sharp fluctuations often seen in traditional investments such as stocks and cryptocurrencies. It's a strategic way to balance growth with security.",
