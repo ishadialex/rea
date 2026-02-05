@@ -455,24 +455,31 @@ const WithdrawFundPage = () => {
               <label className="mb-2 block text-sm font-semibold text-black dark:text-white">
                 Cryptocurrency
               </label>
-              <select
-                value={cryptoDetails.cryptoType}
-                onChange={(e) => {
-                  const newCrypto = cryptoOptions.find((opt) => opt.value === e.target.value);
-                  setCryptoDetails({
-                    ...cryptoDetails,
-                    cryptoType: e.target.value,
-                    network: newCrypto?.networks[0] || "",
-                  });
-                }}
-                className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-black outline-none focus:border-primary dark:border-gray-800 dark:bg-gray-800 dark:text-white"
-              >
-                {cryptoOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  value={cryptoDetails.cryptoType}
+                  onChange={(e) => {
+                    const newCrypto = cryptoOptions.find((opt) => opt.value === e.target.value);
+                    setCryptoDetails({
+                      ...cryptoDetails,
+                      cryptoType: e.target.value,
+                      network: newCrypto?.networks[0] || "",
+                    });
+                  }}
+                  className="w-full appearance-none rounded-lg border border-gray-200 bg-white px-4 py-3 pr-10 text-black outline-none focus:border-primary dark:border-gray-800 dark:bg-gray-800 dark:text-white"
+                >
+                  {cryptoOptions.map((option) => (
+                    <option key={option.value} value={option.value} className="bg-white text-black dark:bg-gray-800 dark:text-white">
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                  <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
             </div>
 
             {/* Network */}
@@ -480,17 +487,24 @@ const WithdrawFundPage = () => {
               <label className="mb-2 block text-sm font-semibold text-black dark:text-white">
                 Network
               </label>
-              <select
-                value={cryptoDetails.network}
-                onChange={(e) => setCryptoDetails({ ...cryptoDetails, network: e.target.value })}
-                className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-black outline-none focus:border-primary dark:border-gray-800 dark:bg-gray-800 dark:text-white"
-              >
-                {selectedCrypto?.networks.map((network) => (
-                  <option key={network} value={network}>
-                    {network}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  value={cryptoDetails.network}
+                  onChange={(e) => setCryptoDetails({ ...cryptoDetails, network: e.target.value })}
+                  className="w-full appearance-none rounded-lg border border-gray-200 bg-white px-4 py-3 pr-10 text-black outline-none focus:border-primary dark:border-gray-800 dark:bg-gray-800 dark:text-white"
+                >
+                  {selectedCrypto?.networks.map((network) => (
+                    <option key={network} value={network} className="bg-white text-black dark:bg-gray-800 dark:text-white">
+                      {network}
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                  <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
             </div>
 
             {/* Wallet Address */}

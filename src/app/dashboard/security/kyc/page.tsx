@@ -269,11 +269,12 @@ export default function KYCPage() {
               <select
                 value={documentInfo.idType}
                 onChange={(e) => handleDocumentInfoChange("idType", e.target.value)}
-                className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-black outline-none focus:border-primary dark:border-gray-800 dark:bg-gray-800 dark:text-white"
+                className="w-full appearance-none rounded-lg border border-gray-200 bg-white px-4 py-3 text-black outline-none focus:border-primary dark:border-gray-800 dark:bg-gray-800 dark:text-white [&>option]:bg-white [&>option]:text-black [&>option]:dark:bg-gray-800 [&>option]:dark:text-white"
+                style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236B7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', backgroundSize: '20px' }}
               >
                 <option value="">Select document type</option>
                 <option value="passport">Passport</option>
-                <option value="drivers_license">Driver's License</option>
+                <option value="drivers_license">Driver&apos;s License</option>
                 <option value="national_id">National ID Card</option>
               </select>
             </div>
