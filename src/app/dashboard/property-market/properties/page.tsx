@@ -441,16 +441,23 @@ export default function PropertiesPage() {
             <label className="mb-2 block text-sm font-semibold text-black dark:text-white">
               Category
             </label>
-            <select
-              value={filters.category}
-              onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-              className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-black outline-none focus:border-primary dark:border-gray-800 dark:bg-gray-800 dark:text-white"
-            >
-              <option value="all">All Categories</option>
-              <option value="arbitrage">Arbitrage</option>
-              <option value="mortgage">Mortgage</option>
-              <option value="airbnb">Airbnb</option>
-            </select>
+            <div className="relative">
+              <select
+                value={filters.category}
+                onChange={(e) => setFilters({ ...filters, category: e.target.value })}
+                className="w-full appearance-none rounded-lg border border-gray-200 bg-white px-4 py-2.5 pr-10 text-black outline-none focus:border-primary dark:border-gray-800 dark:bg-gray-800 dark:text-white"
+              >
+                <option value="all" className="bg-white text-black dark:bg-gray-800 dark:text-white">All Categories</option>
+                <option value="arbitrage" className="bg-white text-black dark:bg-gray-800 dark:text-white">Arbitrage</option>
+                <option value="mortgage" className="bg-white text-black dark:bg-gray-800 dark:text-white">Mortgage</option>
+                <option value="airbnb" className="bg-white text-black dark:bg-gray-800 dark:text-white">Airbnb</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
           </div>
 
           {/* Type Filter */}
@@ -458,15 +465,22 @@ export default function PropertiesPage() {
             <label className="mb-2 block text-sm font-semibold text-black dark:text-white">
               Investment Type
             </label>
-            <select
-              value={filters.type}
-              onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-              className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-black outline-none focus:border-primary dark:border-gray-800 dark:bg-gray-800 dark:text-white"
-            >
-              <option value="all">All Types</option>
-              <option value="individual">Individual</option>
-              <option value="pooled">Pooled</option>
-            </select>
+            <div className="relative">
+              <select
+                value={filters.type}
+                onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+                className="w-full appearance-none rounded-lg border border-gray-200 bg-white px-4 py-2.5 pr-10 text-black outline-none focus:border-primary dark:border-gray-800 dark:bg-gray-800 dark:text-white"
+              >
+                <option value="all" className="bg-white text-black dark:bg-gray-800 dark:text-white">All Types</option>
+                <option value="individual" className="bg-white text-black dark:bg-gray-800 dark:text-white">Individual</option>
+                <option value="pooled" className="bg-white text-black dark:bg-gray-800 dark:text-white">Pooled</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
           </div>
 
           {/* Status Filter */}
@@ -474,16 +488,23 @@ export default function PropertiesPage() {
             <label className="mb-2 block text-sm font-semibold text-black dark:text-white">
               Status
             </label>
-            <select
-              value={filters.status}
-              onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-              className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-black outline-none focus:border-primary dark:border-gray-800 dark:bg-gray-800 dark:text-white"
-            >
-              <option value="all">All Status</option>
-              <option value="available">Available</option>
-              <option value="fully-funded">Fully Funded</option>
-              <option value="coming-soon">Coming Soon</option>
-            </select>
+            <div className="relative">
+              <select
+                value={filters.status}
+                onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                className="w-full appearance-none rounded-lg border border-gray-200 bg-white px-4 py-2.5 pr-10 text-black outline-none focus:border-primary dark:border-gray-800 dark:bg-gray-800 dark:text-white"
+              >
+                <option value="all" className="bg-white text-black dark:bg-gray-800 dark:text-white">All Status</option>
+                <option value="available" className="bg-white text-black dark:bg-gray-800 dark:text-white">Available</option>
+                <option value="fully-funded" className="bg-white text-black dark:bg-gray-800 dark:text-white">Fully Funded</option>
+                <option value="coming-soon" className="bg-white text-black dark:bg-gray-800 dark:text-white">Coming Soon</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
           </div>
 
           {/* Search */}
