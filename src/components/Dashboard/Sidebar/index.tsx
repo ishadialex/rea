@@ -121,36 +121,39 @@ const DashboardSidebar = ({ isOpen, onClose }: DashboardSidebarProps) => {
         isOpen ? "translate-x-0" : "-translate-x-full"
       } lg:translate-x-0`}
     >
-      {/* Close button for mobile */}
-      <button
-        onClick={onClose}
-        className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-lg hover:bg-gray-800 lg:hidden"
-        aria-label="Close sidebar"
-      >
-        <svg
-          className="h-5 w-5 text-white"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M6 18L18 6M6 6l12 12"
+      {/* Logo and Close button */}
+      <div className="flex items-center justify-between border-b border-gray-800 px-3 py-4">
+        <div className="flex items-center gap-1">
+          {/* Close button for mobile - side by side with logo */}
+          <button
+            onClick={onClose}
+            className="flex h-12 w-12 items-center justify-center rounded-lg hover:bg-gray-800 lg:hidden"
+            aria-label="Close sidebar"
+          >
+            <svg
+              className="h-7 w-7 text-white"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+          <Image
+            src="/images/logo/A-logo.png"
+            alt="Golden Units Logo"
+            width={120}
+            height={48}
+            className="h-8 w-auto"
           />
-        </svg>
-      </button>
-
-      {/* Logo */}
-      <div className="flex items-center justify-center border-b border-gray-800 p-6">
-        <Image
-          src="/images/logo/A-logo.png"
-          alt="Golden Units Logo"
-          width={140}
-          height={140}
-          className="h-auto w-36"
-        />
+        </div>
+        {/* Spacer for desktop to center logo */}
+        <div className="hidden w-12 lg:block" />
       </div>
 
       {/* Navigation Menu */}

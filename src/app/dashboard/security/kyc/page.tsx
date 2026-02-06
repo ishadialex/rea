@@ -17,6 +17,7 @@ interface DocumentInfo {
   idType: string;
   idNumber: string;
   idFile: File | null;
+  idFileBack: File | null;
   addressFile: File | null;
 }
 
@@ -36,6 +37,7 @@ export default function KYCPage() {
     idType: "",
     idNumber: "",
     idFile: null,
+    idFileBack: null,
     addressFile: null,
   });
 
@@ -61,7 +63,12 @@ export default function KYCPage() {
   };
 
   const isDocumentInfoValid = () => {
-    return documentInfo.idType && documentInfo.idNumber && documentInfo.idFile;
+    const baseValid = documentInfo.idType && documentInfo.idNumber && documentInfo.idFile;
+    // Driver's license requires back of document
+    if (documentInfo.idType === "drivers_license") {
+      return baseValid && documentInfo.idFileBack;
+    }
+    return baseValid;
   };
 
   const isAddressProofValid = () => {
@@ -294,7 +301,7 @@ export default function KYCPage() {
 
             <div>
               <label className="mb-2 block text-sm font-semibold text-black dark:text-white">
-                Upload Document *
+                Upload Document {documentInfo.idType === "drivers_license" ? "(Front) " : ""}*
               </label>
               <div className="rounded-lg border-2 border-dashed border-gray-200 p-6 text-center dark:border-gray-800">
                 <input
@@ -319,7 +326,7 @@ export default function KYCPage() {
                     />
                   </svg>
                   {documentInfo.idFile ? (
-                    <p className="text-sm font-medium text-black dark:text-white">
+                    <p className="mx-auto max-w-full truncate px-4 text-sm font-medium text-black dark:text-white">
                       {documentInfo.idFile.name}
                     </p>
                   ) : (
@@ -335,6 +342,53 @@ export default function KYCPage() {
                 </label>
               </div>
             </div>
+
+            {/* Back of Driver's License */}
+            {documentInfo.idType === "drivers_license" && (
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-black dark:text-white">
+                  Upload Document (Back) *
+                </label>
+                <div className="rounded-lg border-2 border-dashed border-gray-200 p-6 text-center dark:border-gray-800">
+                  <input
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={(e) => handleDocumentInfoChange("idFileBack", e.target.files?.[0] || null)}
+                    className="hidden"
+                    id="id-upload-back"
+                  />
+                  <label htmlFor="id-upload-back" className="cursor-pointer">
+                    <svg
+                      className="mx-auto mb-3 h-12 w-12 text-gray-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                      />
+                    </svg>
+                    {documentInfo.idFileBack ? (
+                      <p className="mx-auto max-w-full truncate px-4 text-sm font-medium text-black dark:text-white">
+                        {documentInfo.idFileBack.name}
+                      </p>
+                    ) : (
+                      <>
+                        <p className="mb-2 text-sm font-medium text-black dark:text-white">
+                          Click to upload or drag and drop
+                        </p>
+                        <p className="text-xs text-body-color dark:text-body-color-dark">
+                          PNG, JPG or PDF (max. 10MB)
+                        </p>
+                      </>
+                    )}
+                  </label>
+                </div>
+              </div>
+            )}
 
             <div className="rounded-lg bg-blue-50 p-4 dark:bg-blue-900/20">
               <p className="text-sm text-blue-800 dark:text-blue-300">
@@ -399,7 +453,7 @@ export default function KYCPage() {
                     />
                   </svg>
                   {documentInfo.addressFile ? (
-                    <p className="text-sm font-medium text-black dark:text-white">
+                    <p className="mx-auto max-w-full truncate px-4 text-sm font-medium text-black dark:text-white">
                       {documentInfo.addressFile.name}
                     </p>
                   ) : (
@@ -529,15 +583,25 @@ export default function KYCPage() {
                     {documentInfo.idNumber}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-body-color dark:text-body-color-dark">ID Document:</span>
-                  <span className="font-medium text-black dark:text-white">
+                <div className="flex justify-between gap-2">
+                  <span className="flex-shrink-0 text-body-color dark:text-body-color-dark">
+                    ID Document {documentInfo.idType === "drivers_license" ? "(Front)" : ""}:
+                  </span>
+                  <span className="truncate font-medium text-black dark:text-white">
                     {documentInfo.idFile?.name}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-body-color dark:text-body-color-dark">Address Proof:</span>
-                  <span className="font-medium text-black dark:text-white">
+                {documentInfo.idType === "drivers_license" && documentInfo.idFileBack && (
+                  <div className="flex justify-between gap-2">
+                    <span className="flex-shrink-0 text-body-color dark:text-body-color-dark">ID Document (Back):</span>
+                    <span className="truncate font-medium text-black dark:text-white">
+                      {documentInfo.idFileBack.name}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between gap-2">
+                  <span className="flex-shrink-0 text-body-color dark:text-body-color-dark">Address Proof:</span>
+                  <span className="truncate font-medium text-black dark:text-white">
                     {documentInfo.addressFile?.name}
                   </span>
                 </div>

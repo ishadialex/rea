@@ -89,7 +89,7 @@ const ProfileDropdown = () => {
             <button
               onClick={() => {
                 setIsOpen(false);
-                // Navigate to edit profile page
+                router.push("/dashboard/profile");
               }}
               className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-black transition-all hover:bg-gray-100 hover:pl-5 dark:text-white dark:hover:bg-gray-800"
             >
@@ -106,7 +106,7 @@ const ProfileDropdown = () => {
                   d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
                 />
               </svg>
-              Edit profile
+              Profile
             </button>
 
             <button
