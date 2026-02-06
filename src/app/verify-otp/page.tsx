@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-export default function VerifyOTP() {
+function VerifyOTPContent() {
   const [otp, setOtp] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -156,5 +156,13 @@ export default function VerifyOTP() {
         </svg>
       </div>
     </section>
+  );
+}
+
+export default function VerifyOTP() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center">Loading...</div>}>
+      <VerifyOTPContent />
+    </Suspense>
   );
 }

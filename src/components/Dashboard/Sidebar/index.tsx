@@ -122,28 +122,29 @@ const DashboardSidebar = ({ isOpen, onClose }: DashboardSidebarProps) => {
       } lg:translate-x-0`}
     >
       {/* Logo and Close button */}
-      <div className="flex items-center justify-between border-b border-gray-800 px-3 py-4">
-        <div className="flex items-center gap-1">
-          {/* Close button for mobile - side by side with logo */}
-          <button
-            onClick={onClose}
-            className="flex h-12 w-12 items-center justify-center rounded-lg hover:bg-gray-800 lg:hidden"
-            aria-label="Close sidebar"
+      <div className="relative flex items-center border-b border-gray-800 px-3 py-4">
+        {/* Close button for mobile */}
+        <button
+          onClick={onClose}
+          className="relative z-10 flex h-12 w-12 items-center justify-center rounded-lg hover:bg-gray-800 lg:hidden"
+          aria-label="Close sidebar"
+        >
+          <svg
+            className="h-7 w-7 text-white"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
           >
-            <svg
-              className="h-7 w-7 text-white"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+        {/* Logo - absolutely centered */}
+        <div className="absolute inset-0 flex items-center justify-center">
           <Image
             src="/images/logo/A-logo.png"
             alt="Golden Units Logo"
@@ -152,8 +153,6 @@ const DashboardSidebar = ({ isOpen, onClose }: DashboardSidebarProps) => {
             className="h-8 w-auto"
           />
         </div>
-        {/* Spacer for desktop to center logo */}
-        <div className="hidden w-12 lg:block" />
       </div>
 
       {/* Navigation Menu */}

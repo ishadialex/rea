@@ -156,18 +156,22 @@ const MyReferralPage = () => {
 
   // Refresh data function
   const refreshData = useCallback(async () => {
+    setLoadingUserInfo(true);
     setLoadingStats(true);
     setLoadingReferrals(true);
     try {
-      const [statsData, referralsData] = await Promise.all([
+      const [userInfoData, statsData, referralsData] = await Promise.all([
+        fetchUserReferralInfo(),
         fetchReferralStats(),
         fetchReferrals(),
       ]);
+      setUserInfo(userInfoData);
       setStats(statsData);
       setReferrals(referralsData);
     } catch (err) {
       setError("Failed to refresh data.");
     } finally {
+      setLoadingUserInfo(false);
       setLoadingStats(false);
       setLoadingReferrals(false);
     }
@@ -305,10 +309,11 @@ const MyReferralPage = () => {
         <button
           onClick={refreshData}
           disabled={loadingStats || loadingReferrals}
-          className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-black transition-colors hover:bg-gray-50 disabled:opacity-50 dark:border-gray-800 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700"
+          className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-black transition-colors hover:bg-gray-50 disabled:opacity-50 dark:border-gray-800 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700"
+          aria-label="Refresh"
         >
           <svg
-            className={`h-4 w-4 ${loadingStats || loadingReferrals ? "animate-spin" : ""}`}
+            className={`h-5 w-5 ${loadingStats || loadingReferrals ? "animate-spin" : ""}`}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -320,7 +325,6 @@ const MyReferralPage = () => {
               d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
             />
           </svg>
-          Refresh
         </button>
       </div>
 

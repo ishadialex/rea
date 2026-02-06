@@ -112,7 +112,7 @@ const ProfileDropdown = () => {
             <button
               onClick={() => {
                 setIsOpen(false);
-                // Navigate to account settings page
+                router.push("/dashboard/settings");
               }}
               className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-black transition-all hover:bg-gray-100 hover:pl-5 dark:text-white dark:hover:bg-gray-800"
             >
@@ -141,7 +141,7 @@ const ProfileDropdown = () => {
             <button
               onClick={() => {
                 setIsOpen(false);
-                // Navigate to support page
+                router.push("/dashboard/support");
               }}
               className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-black transition-all hover:bg-gray-100 hover:pl-5 dark:text-white dark:hover:bg-gray-800"
             >

@@ -57,6 +57,18 @@ const EditProfileModal = ({ isOpen, onClose, profile, onSuccess }: EditProfileMo
     setFieldErrors({});
   }, [profile, isOpen]);
 
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
+
   // Close on escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -183,302 +195,315 @@ const EditProfileModal = ({ isOpen, onClose, profile, onSuccess }: EditProfileMo
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center sm:p-4"
+      className="fixed inset-0 z-[9999] overflow-hidden"
       onClick={handleBackdropClick}
     >
-      <div
-        ref={modalRef}
-        className="max-h-[95vh] w-full overflow-y-auto rounded-t-2xl bg-white shadow-2xl dark:bg-gray-dark sm:max-h-[90vh] sm:max-w-2xl sm:rounded-2xl"
-      >
-        {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 dark:border-gray-800 dark:bg-gray-dark sm:px-6 sm:py-4">
-          <h2 className="text-lg font-bold text-black dark:text-white sm:text-xl">
-            Edit Profile
-          </h2>
-          <button
-            onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 sm:h-10 sm:w-10"
-          >
-            <svg className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
 
-        {/* Error Message */}
-        {errorMessage && (
-          <div className="mx-4 mt-3 flex items-center gap-2 rounded-lg bg-red-50 p-3 dark:bg-red-900/20 sm:mx-6 sm:mt-4 sm:gap-3 sm:p-4">
-            <svg className="h-4 w-4 flex-shrink-0 text-red-600 dark:text-red-400 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p className="text-xs font-medium text-red-800 dark:text-red-300 sm:text-sm">{errorMessage}</p>
-          </div>
-        )}
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-4 sm:p-6">
-          {/* Profile Photo */}
-          <div className="mb-5 flex flex-col items-center gap-3 sm:mb-6 sm:flex-row sm:gap-4">
-            <div className="relative">
-              <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800 sm:h-20 sm:w-20">
-                {formData.profilePhoto ? (
-                  <Image
-                    src={formData.profilePhoto}
-                    alt="Profile"
-                    width={80}
-                    height={80}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <span className="text-xl font-bold text-primary sm:text-2xl">
-                    {formData.firstName?.charAt(0)?.toUpperCase() || "U"}
-                  </span>
-                )}
-              </div>
-              {isUploadingPhoto && (
-                <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50">
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent sm:h-6 sm:w-6"></div>
-                </div>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/gif,image/webp"
-                onChange={handlePhotoUpload}
-                className="hidden"
-              />
-              <button
-                type="button"
-                onClick={handlePhotoClick}
-                disabled={isUploadingPhoto}
-                className="rounded-lg bg-gray-100 px-3 py-2 text-xs font-medium text-black transition-colors hover:bg-gray-200 disabled:opacity-50 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700 sm:text-sm"
-              >
-                Change Photo
-              </button>
-              {formData.profilePhoto && (
-                <button
-                  type="button"
-                  onClick={handleRemovePhoto}
-                  className="rounded-lg px-3 py-2 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 dark:hover:bg-red-900/20 sm:text-sm"
-                >
-                  Remove
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Name Fields */}
-          <div className="mb-3 grid gap-3 sm:mb-4 sm:grid-cols-2 sm:gap-4">
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold text-black dark:text-white sm:mb-2 sm:text-sm">
-                First Name *
-              </label>
-              <input
-                type="text"
-                value={formData.firstName}
-                onChange={(e) => handleInputChange("firstName", e.target.value)}
-                className={`w-full rounded-lg border bg-white px-3 py-2.5 text-sm text-black outline-none transition-colors focus:border-primary dark:bg-gray-800 dark:text-white sm:px-4 sm:py-3 ${
-                  fieldErrors.firstName ? "border-red-500" : "border-gray-200 dark:border-gray-700"
-                }`}
-                placeholder="John"
-              />
-              {fieldErrors.firstName && (
-                <p className="mt-1 text-xs text-red-500">{fieldErrors.firstName}</p>
-              )}
-            </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold text-black dark:text-white sm:mb-2 sm:text-sm">
-                Last Name *
-              </label>
-              <input
-                type="text"
-                value={formData.lastName}
-                onChange={(e) => handleInputChange("lastName", e.target.value)}
-                className={`w-full rounded-lg border bg-white px-3 py-2.5 text-sm text-black outline-none transition-colors focus:border-primary dark:bg-gray-800 dark:text-white sm:px-4 sm:py-3 ${
-                  fieldErrors.lastName ? "border-red-500" : "border-gray-200 dark:border-gray-700"
-                }`}
-                placeholder="Doe"
-              />
-              {fieldErrors.lastName && (
-                <p className="mt-1 text-xs text-red-500">{fieldErrors.lastName}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Phone & DOB */}
-          <div className="mb-4 grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-black dark:text-white">
-                Phone Number *
-              </label>
-              <input
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => handleInputChange("phone", e.target.value)}
-                className={`w-full rounded-lg border bg-white px-4 py-3 text-black outline-none transition-colors focus:border-primary dark:bg-gray-800 dark:text-white ${
-                  fieldErrors.phone ? "border-red-500" : "border-gray-200 dark:border-gray-700"
-                }`}
-                placeholder="+1 (555) 123-4567"
-              />
-              {fieldErrors.phone && (
-                <p className="mt-1 text-xs text-red-500">{fieldErrors.phone}</p>
-              )}
-            </div>
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-black dark:text-white">
-                Date of Birth
-              </label>
-              <input
-                type="date"
-                value={formData.dateOfBirth}
-                onChange={(e) => handleInputChange("dateOfBirth", e.target.value)}
-                className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-black outline-none transition-colors focus:border-primary dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-              />
-            </div>
-          </div>
-
-          {/* Nationality & Occupation */}
-          <div className="mb-4 grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-black dark:text-white">
-                Nationality
-              </label>
-              <input
-                type="text"
-                value={formData.nationality}
-                onChange={(e) => handleInputChange("nationality", e.target.value)}
-                className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-black outline-none transition-colors focus:border-primary dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                placeholder="United States"
-              />
-            </div>
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-black dark:text-white">
-                Occupation
-              </label>
-              <input
-                type="text"
-                value={formData.occupation}
-                onChange={(e) => handleInputChange("occupation", e.target.value)}
-                className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-black outline-none transition-colors focus:border-primary dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                placeholder="Investment Manager"
-              />
-            </div>
-          </div>
-
-          {/* Address */}
-          <div className="mb-4">
-            <label className="mb-2 block text-sm font-semibold text-black dark:text-white">
-              Street Address
-            </label>
-            <input
-              type="text"
-              value={formData.address}
-              onChange={(e) => handleInputChange("address", e.target.value)}
-              className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-black outline-none transition-colors focus:border-primary dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-              placeholder="123 Main Street, Suite 100"
-            />
-          </div>
-
-          {/* City, State, Postal */}
-          <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
-            <div className="col-span-2 sm:col-span-1">
-              <label className="mb-1.5 block text-xs font-semibold text-black dark:text-white sm:mb-2 sm:text-sm">
-                City
-              </label>
-              <input
-                type="text"
-                value={formData.city}
-                onChange={(e) => handleInputChange("city", e.target.value)}
-                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-black outline-none transition-colors focus:border-primary dark:border-gray-700 dark:bg-gray-800 dark:text-white sm:px-4 sm:py-3"
-                placeholder="New York"
-              />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold text-black dark:text-white sm:mb-2 sm:text-sm">
-                State
-              </label>
-              <input
-                type="text"
-                value={formData.state}
-                onChange={(e) => handleInputChange("state", e.target.value)}
-                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-black outline-none transition-colors focus:border-primary dark:border-gray-700 dark:bg-gray-800 dark:text-white sm:px-4 sm:py-3"
-                placeholder="NY"
-              />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold text-black dark:text-white sm:mb-2 sm:text-sm">
-                Postal Code
-              </label>
-              <input
-                type="text"
-                value={formData.postalCode}
-                onChange={(e) => handleInputChange("postalCode", e.target.value)}
-                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-black outline-none transition-colors focus:border-primary dark:border-gray-700 dark:bg-gray-800 dark:text-white sm:px-4 sm:py-3"
-                placeholder="10001"
-              />
-            </div>
-          </div>
-
-          {/* Country */}
-          <div className="mb-4">
-            <label className="mb-2 block text-sm font-semibold text-black dark:text-white">
-              Country
-            </label>
-            <input
-              type="text"
-              value={formData.country}
-              onChange={(e) => handleInputChange("country", e.target.value)}
-              className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-black outline-none transition-colors focus:border-primary dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-              placeholder="USA"
-            />
-          </div>
-
-          {/* Bio */}
-          <div className="mb-6">
-            <label className="mb-2 block text-sm font-semibold text-black dark:text-white">
-              Bio
-            </label>
-            <textarea
-              value={formData.bio}
-              onChange={(e) => handleInputChange("bio", e.target.value)}
-              rows={3}
-              className="w-full resize-none rounded-lg border border-gray-200 bg-white px-4 py-3 text-black outline-none transition-colors focus:border-primary dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-              placeholder="Tell us a little about yourself..."
-            />
-          </div>
-
-          {/* Actions */}
-          <div className="flex gap-3">
+      {/* Modal Container - with safe area padding for mobile */}
+      <div className="relative flex h-full w-full items-end justify-center pb-0 pt-12 sm:items-center sm:p-4 sm:pt-4">
+        <div
+          ref={modalRef}
+          className="relative flex max-h-full w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl dark:bg-gray-dark sm:max-h-[90vh] sm:max-w-lg sm:rounded-2xl"
+        >
+          {/* Header */}
+          <div className="flex flex-shrink-0 items-center justify-between border-b border-gray-200 bg-white px-4 py-3 dark:border-gray-800 dark:bg-gray-dark">
+            <h2 className="text-base font-bold text-black dark:text-white sm:text-lg">
+              Edit Profile
+            </h2>
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-3 font-semibold text-black transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700"
+              className="flex h-8 w-8 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Scrollable Content */}
+          <div className="flex-1 overflow-y-auto overscroll-contain">
+            {/* Error Message */}
+            {errorMessage && (
+              <div className="mx-4 mt-3 flex items-start gap-2 rounded-lg bg-red-50 p-3 dark:bg-red-900/20">
+                <svg className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-xs font-medium text-red-800 dark:text-red-300">{errorMessage}</p>
+              </div>
+            )}
+
+            {/* Form */}
+            <form id="edit-profile-form" onSubmit={handleSubmit} className="p-4">
+              {/* Profile Photo */}
+              <div className="mb-4 flex flex-col items-center gap-3 sm:flex-row">
+                <div className="relative flex-shrink-0">
+                  <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
+                    {formData.profilePhoto ? (
+                      <Image
+                        src={formData.profilePhoto}
+                        alt="Profile"
+                        width={64}
+                        height={64}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-xl font-bold text-primary">
+                        {formData.firstName?.charAt(0)?.toUpperCase() || "U"}
+                      </span>
+                    )}
+                  </div>
+                  {isUploadingPhoto && (
+                    <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50">
+                      <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-wrap justify-center gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={handlePhotoClick}
+                    disabled={isUploadingPhoto}
+                    className="rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-medium text-black transition-colors hover:bg-gray-200 disabled:opacity-50 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700"
+                  >
+                    Change
+                  </button>
+                  {formData.profilePhoto && (
+                    <button
+                      type="button"
+                      onClick={handleRemovePhoto}
+                      className="rounded-lg px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 dark:hover:bg-red-900/20"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Name Fields */}
+              <div className="mb-3 grid grid-cols-2 gap-2">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-black dark:text-white">
+                    First Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.firstName}
+                    onChange={(e) => handleInputChange("firstName", e.target.value)}
+                    className={`w-full rounded-lg border bg-white px-3 py-2 text-sm text-black outline-none focus:border-primary dark:bg-gray-800 dark:text-white ${
+                      fieldErrors.firstName ? "border-red-500" : "border-gray-200 dark:border-gray-700"
+                    }`}
+                    placeholder="John"
+                  />
+                  {fieldErrors.firstName && (
+                    <p className="mt-0.5 text-[10px] text-red-500">{fieldErrors.firstName}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-black dark:text-white">
+                    Last Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.lastName}
+                    onChange={(e) => handleInputChange("lastName", e.target.value)}
+                    className={`w-full rounded-lg border bg-white px-3 py-2 text-sm text-black outline-none focus:border-primary dark:bg-gray-800 dark:text-white ${
+                      fieldErrors.lastName ? "border-red-500" : "border-gray-200 dark:border-gray-700"
+                    }`}
+                    placeholder="Doe"
+                  />
+                  {fieldErrors.lastName && (
+                    <p className="mt-0.5 text-[10px] text-red-500">{fieldErrors.lastName}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Phone */}
+              <div className="mb-3">
+                <label className="mb-1 block text-xs font-medium text-black dark:text-white">
+                  Phone Number *
+                </label>
+                <input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => handleInputChange("phone", e.target.value)}
+                  className={`w-full rounded-lg border bg-white px-3 py-2 text-sm text-black outline-none focus:border-primary dark:bg-gray-800 dark:text-white ${
+                    fieldErrors.phone ? "border-red-500" : "border-gray-200 dark:border-gray-700"
+                  }`}
+                  placeholder="+1 (555) 123-4567"
+                />
+                {fieldErrors.phone && (
+                  <p className="mt-0.5 text-[10px] text-red-500">{fieldErrors.phone}</p>
+                )}
+              </div>
+
+              {/* DOB & Nationality */}
+              <div className="mb-3 grid grid-cols-2 gap-2">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-black dark:text-white">
+                    Date of Birth
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.dateOfBirth}
+                    onChange={(e) => handleInputChange("dateOfBirth", e.target.value)}
+                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-black outline-none focus:border-primary dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-black dark:text-white">
+                    Nationality
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.nationality}
+                    onChange={(e) => handleInputChange("nationality", e.target.value)}
+                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-black outline-none focus:border-primary dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    placeholder="USA"
+                  />
+                </div>
+              </div>
+
+              {/* Occupation */}
+              <div className="mb-3">
+                <label className="mb-1 block text-xs font-medium text-black dark:text-white">
+                  Occupation
+                </label>
+                <input
+                  type="text"
+                  value={formData.occupation}
+                  onChange={(e) => handleInputChange("occupation", e.target.value)}
+                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-black outline-none focus:border-primary dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  placeholder="Investment Manager"
+                />
+              </div>
+
+              {/* Address */}
+              <div className="mb-3">
+                <label className="mb-1 block text-xs font-medium text-black dark:text-white">
+                  Street Address
+                </label>
+                <input
+                  type="text"
+                  value={formData.address}
+                  onChange={(e) => handleInputChange("address", e.target.value)}
+                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-black outline-none focus:border-primary dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  placeholder="123 Main Street"
+                />
+              </div>
+
+              {/* City & State */}
+              <div className="mb-3 grid grid-cols-2 gap-2">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-black dark:text-white">
+                    City
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.city}
+                    onChange={(e) => handleInputChange("city", e.target.value)}
+                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-black outline-none focus:border-primary dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    placeholder="New York"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-black dark:text-white">
+                    State
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.state}
+                    onChange={(e) => handleInputChange("state", e.target.value)}
+                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-black outline-none focus:border-primary dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    placeholder="NY"
+                  />
+                </div>
+              </div>
+
+              {/* Postal & Country */}
+              <div className="mb-3 grid grid-cols-2 gap-2">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-black dark:text-white">
+                    Postal Code
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.postalCode}
+                    onChange={(e) => handleInputChange("postalCode", e.target.value)}
+                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-black outline-none focus:border-primary dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    placeholder="10001"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-black dark:text-white">
+                    Country
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.country}
+                    onChange={(e) => handleInputChange("country", e.target.value)}
+                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-black outline-none focus:border-primary dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    placeholder="USA"
+                  />
+                </div>
+              </div>
+
+              {/* Bio */}
+              <div className="mb-2">
+                <label className="mb-1 block text-xs font-medium text-black dark:text-white">
+                  Bio
+                </label>
+                <textarea
+                  value={formData.bio}
+                  onChange={(e) => handleInputChange("bio", e.target.value)}
+                  rows={2}
+                  className="w-full resize-none rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-black outline-none focus:border-primary dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                  placeholder="Tell us about yourself..."
+                />
+              </div>
+            </form>
+          </div>
+
+          {/* Fixed Footer Actions */}
+          <div className="flex flex-shrink-0 gap-2 border-t border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-dark">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700"
             >
               Cancel
             </button>
             <button
               type="submit"
+              form="edit-profile-form"
               disabled={isSaving}
-              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 font-semibold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSaving ? (
                 <>
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                  Saving...
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                  Saving
                 </>
               ) : (
                 <>
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  Save Changes
+                  Save
                 </>
               )}
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

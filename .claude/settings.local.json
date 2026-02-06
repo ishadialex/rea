@@ -10,7 +10,11 @@
       "Bash(findstr:*)",
       "Bash(npm uninstall:*)",
       "Bash(tree:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(npx prisma migrate dev:*)",
+      "Bash(node --experimental-strip-types prisma/seed.ts:*)",
+      "Bash(npx prisma generate:*)",
+      "Bash(npx jiti:*)"
     ]
   }
 }

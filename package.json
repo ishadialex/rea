@@ -6,10 +6,21 @@
     "dev": "next dev -H 0.0.0.0",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:generate": "npx prisma generate && node scripts/fix-prisma-imports.mjs",
+    "db:migrate": "npx prisma migrate dev && node scripts/fix-prisma-imports.mjs",
+    "db:seed": "npx prisma db seed",
+    "db:reset": "npx prisma migrate reset",
+    "db:studio": "npx prisma studio"
+  },
+  "prisma": {
+    "seed": "npx tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@prisma/adapter-better-sqlite3": "^7.3.0",
+    "@prisma/client": "^7.3.0",
     "@tailwindcss/postcss": "^4.1.3",
+    "better-sqlite3": "^12.6.2",
     "eslint": "^9.24.0",
     "eslint-config-next": "15.1.6",
     "leaflet": "^1.9.4",
@@ -23,13 +34,18 @@
     "tailwindcss": "^4.1.3"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/leaflet": "^1.9.21",
     "@types/node": "^20.8.9",
     "@types/react": "19.1.0",
     "@types/react-dom": "19.1.0",
     "autoprefixer": "^10.4.17",
+    "dotenv": "^17.2.4",
+    "jiti": "^2.6.1",
     "prettier": "^3.2.5",
     "prettier-plugin-tailwindcss": "^0.6.11",
+    "prisma": "^7.3.0",
+    "tsx": "^4.21.0",
     "typescript": "^5.3.3"
   },
   "engines": {

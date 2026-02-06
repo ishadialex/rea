@@ -2,26 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { InvestmentOptionType } from "@/types/investmentOption";
 
-const TwoWaysToInvest = () => {
-  const investmentOptions = [
-    {
-      image: "/images/investment/entire-ownership.jpg",
-      title: "Entire Rental Property Ownership",
-      minInvestment: "$15,000",
-      description:
-        "Step into full ownership of a profitable Airbnb rental property with an investment as low as $15,000. This option grants you 100% control of the asset and all rental income it generates. No revenue sharing, no third-party splits. You decide how it's managed, when it's rented, and how the earnings are reinvested or withdrawn. Perfect for investors seeking maximum autonomy and long-term wealth through short-term rentals.",
-      link: "/investment/entire-ownership",
-    },
-    {
-      image: "/images/investment/mortgage-backed.jpg",
-      title: "Mortgage Backed Airbnb Arbitrage",
-      minInvestment: "$45,000",
-      description:
-        "Golden Units helps investors acquire high performing Airbnb properties using strategic mortgage financing. With investments starting from just $45,000, you only fund 15% to 30% of the property's cost, while we cover the rest through the profit we make from short-term rentals We fully furnish, manage, and list the property on Airbnb; using 50% of the monthly profit to repay the mortgage and remitting the other 50% directly to you. Once the loan is cleared, typically within 3 years, you decide whether to cash out, continue earning, or take over full control of the property. Your money works smarter, not harder, earning you monthly income and long term property appreciation with minimal upfront capital.",
-      link: "/investment/mortgage-backed",
-    },
-  ];
+interface TwoWaysToInvestProps {
+  options: InvestmentOptionType[];
+}
+
+const TwoWaysToInvest = ({ options }: TwoWaysToInvestProps) => {
+  if (options.length === 0) return null;
 
   return (
     <section className="relative bg-gray-2 py-10 dark:bg-bg-color-dark md:py-12 lg:py-16">
@@ -37,7 +25,7 @@ const TwoWaysToInvest = () => {
 
         {/* Investment Cards */}
         <div className="grid gap-8 sm:grid-cols-1 lg:grid-cols-2">
-          {investmentOptions.map((option, index) => (
+          {options.map((option, index) => (
             <div
               key={index}
               className="rounded-lg bg-white p-6 shadow-lg transition-all duration-300 hover:shadow-xl dark:bg-gray-dark dark:shadow-two sm:p-8 md:p-10"
@@ -78,7 +66,7 @@ const TwoWaysToInvest = () => {
               {/* CTA Button */}
               <Link
                 href={option.link}
-                className="inline-block rounded-xs bg-black px-8 py-4 text-base font-semibold text-white transition-all duration-300 hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
+                className="inline-block rounded-full bg-black px-10 py-4 text-base font-semibold text-white transition-all duration-300 hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
               >
                 EXPLORE MORE
               </Link>

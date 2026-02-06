@@ -2,67 +2,22 @@
 
 import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
+import { TeamMember } from "@/types/team";
 
-interface TeamMember {
-  name: string;
-  role: string;
-  image: string;
-  instagram?: string;
+interface TeamProps {
+  members: TeamMember[];
 }
 
-const Team = () => {
+const Team = ({ members }: TeamProps) => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [itemsPerSlide, setItemsPerSlide] = useState(3);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const teamMembers: TeamMember[] = [
-    {
-      name: "Reda Assel",
-      role: "Chief Operating Officer",
-      image: "/images/team/member-1.jpg",
-      instagram: "https://instagram.com/",
-    },
-    {
-      name: "Laura Whitlock",
-      role: "Financial Consultant",
-      image: "/images/team/member-2.jpg",
-      instagram: "https://instagram.com/",
-    },
-    {
-      name: "Crystal Rocillo",
-      role: "Chief Financial Officer",
-      image: "/images/team/member-3.jpg",
-      instagram: "https://instagram.com/",
-    },
-    {
-      name: "Michael Torres",
-      role: "Property Manager",
-      image: "/images/team/member-4.jpg",
-      instagram: "https://instagram.com/",
-    },
-    {
-      name: "Sarah Johnson",
-      role: "Marketing Director",
-      image: "/images/team/member-5.jpg",
-      instagram: "https://instagram.com/",
-    },
-    {
-      name: "David Chen",
-      role: "Investment Analyst",
-      image: "/images/team/member-6.jpg",
-      instagram: "https://instagram.com/",
-    },
-    {
-      name: "Emma Martinez",
-      role: "Client Relations Manager",
-      image: "/images/team/member-7.jpg",
-      instagram: "https://instagram.com/",
-    },
-  ];
-
   const autoScrollInterval = 2000; // 2 seconds
-  const totalMembers = teamMembers.length;
+  const totalMembers = members.length;
+
+  if (totalMembers === 0) return null;
 
   // Update items per slide based on screen size
   useEffect(() => {
@@ -102,12 +57,12 @@ const Team = () => {
 
   // Get 3 consecutive members starting from currentSlide (with wrapping)
   const getVisibleMembers = () => {
-    const members = [];
+    const visibleList = [];
     for (let i = 0; i < itemsPerSlide; i++) {
       const index = (currentSlide + i) % totalMembers;
-      members.push(teamMembers[index]);
+      visibleList.push(members[index]);
     }
-    return members;
+    return visibleList;
   };
 
   const visibleMembers = getVisibleMembers();

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Popup from "@/components/Popup";
 
 interface TransferDetails {
@@ -9,19 +9,58 @@ interface TransferDetails {
   note: string;
 }
 
+interface Transfer {
+  id: string;
+  recipientEmail: string;
+  recipientName: string;
+  amount: number;
+  note: string;
+  status: "pending" | "completed" | "failed";
+  createdAt: string;
+  completedAt?: string;
+}
+
 const MoneyTransferPage = () => {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState<"success" | "error" | "info">("success");
+  const [availableBalance, setAvailableBalance] = useState(0);
+  const [recentTransfers, setRecentTransfers] = useState<Transfer[]>([]);
   const [transferDetails, setTransferDetails] = useState<TransferDetails>({
     email: "",
     amount: "",
     note: "",
   });
 
-  // Mock available balance
-  const availableBalance = 25000;
+  // Fetch balance and transfer history on mount
+  useEffect(() => {
+    fetchTransferData();
+  }, []);
+
+  const fetchTransferData = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch("/api/transfer");
+      const data = await response.json();
+
+      if (data.success) {
+        setAvailableBalance(data.data.balance);
+        setRecentTransfers(data.data.transfers);
+      } else {
+        setToastMessage(data.message || "Failed to load transfer data");
+        setToastType("error");
+        setShowToast(true);
+      }
+    } catch (error) {
+      setToastMessage("Failed to connect to server");
+      setToastType("error");
+      setShowToast(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,23 +90,85 @@ const MoneyTransferPage = () => {
 
     setIsProcessing(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    try {
+      const response = await fetch("/api/transfer", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          recipientEmail: transferDetails.email,
+          amount: amount,
+          note: transferDetails.note,
+        }),
+      });
 
-    setIsProcessing(false);
+      const data = await response.json();
 
-    // Show success toast
-    setToastMessage(`Successfully transferred $${amount.toLocaleString()} to ${transferDetails.email}`);
-    setToastType("success");
-    setShowToast(true);
+      if (data.success) {
+        // Update balance and transfers
+        setAvailableBalance(data.data.newBalance);
+        setRecentTransfers((prev) => [data.data.transfer, ...prev]);
 
-    // Reset form
-    setTransferDetails({
-      email: "",
-      amount: "",
-      note: "",
+        // Show success toast
+        setToastMessage(data.message);
+        setToastType("success");
+        setShowToast(true);
+
+        // Reset form
+        setTransferDetails({
+          email: "",
+          amount: "",
+          note: "",
+        });
+      } else {
+        setToastMessage(data.message || "Transfer failed");
+        setToastType("error");
+        setShowToast(true);
+      }
+    } catch (error) {
+      setToastMessage("Failed to process transfer");
+      setToastType("error");
+      setShowToast(true);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
+
+  const getStatusColor = (status: Transfer["status"]) => {
+    switch (status) {
+      case "completed":
+        return "text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900/30";
+      case "pending":
+        return "text-yellow-600 bg-yellow-100 dark:text-yellow-400 dark:bg-yellow-900/30";
+      case "failed":
+        return "text-red-600 bg-red-100 dark:text-red-400 dark:bg-red-900/30";
+      default:
+        return "text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-900/30";
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="text-center">
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+          <p className="text-body-color dark:text-body-color-dark">Loading transfer data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
@@ -192,28 +293,91 @@ const MoneyTransferPage = () => {
 
       {/* Recent Transfers */}
       <div className="mx-auto mt-8 max-w-2xl">
-        <h2 className="mb-4 text-xl font-bold text-black dark:text-white">
-          Recent Transfers
-        </h2>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-black dark:text-white">
+            Recent Transfers
+          </h2>
+          <button
+            onClick={fetchTransferData}
+            className="text-sm text-primary hover:underline"
+          >
+            Refresh
+          </button>
+        </div>
         <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-dark">
-          <div className="p-6 text-center">
-            <svg
-              className="mx-auto mb-3 h-12 w-12 text-gray-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
-              />
-            </svg>
-            <p className="text-sm text-body-color dark:text-body-color-dark">
-              No recent transfers
-            </p>
-          </div>
+          {recentTransfers.length === 0 ? (
+            <div className="p-6 text-center">
+              <svg
+                className="mx-auto mb-3 h-12 w-12 text-gray-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+                />
+              </svg>
+              <p className="text-sm text-body-color dark:text-body-color-dark">
+                No recent transfers
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-200 dark:divide-gray-700">
+              {recentTransfers.slice(0, 5).map((transfer) => (
+                <div
+                  key={transfer.id}
+                  className="flex items-center justify-between p-4"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <svg
+                        className="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                        />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-black dark:text-white">
+                        {transfer.recipientName}
+                      </p>
+                      <p className="text-xs text-body-color dark:text-body-color-dark">
+                        {transfer.recipientEmail}
+                      </p>
+                      <p className="text-xs text-body-color dark:text-body-color-dark">
+                        {formatDate(transfer.createdAt)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-red-600 dark:text-red-400">
+                      -${transfer.amount.toLocaleString()}
+                    </p>
+                    <span
+                      className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium capitalize ${getStatusColor(transfer.status)}`}
+                    >
+                      {transfer.status}
+                    </span>
+                    {transfer.note && (
+                      <p className="mt-1 max-w-[150px] truncate text-xs text-body-color dark:text-body-color-dark">
+                        {transfer.note}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

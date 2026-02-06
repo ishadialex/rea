@@ -48,7 +48,7 @@ const HowItWorks = () => {
 
               <Link
                 href="/about"
-                className="inline-block rounded-xs bg-white px-8 py-4 text-base font-semibold text-black duration-300 ease-in-out hover:bg-white/90"
+                className="inline-block rounded-full bg-white px-10 py-4 text-base font-semibold text-black duration-300 ease-in-out hover:bg-white/90"
               >
                 READ MORE
               </Link>

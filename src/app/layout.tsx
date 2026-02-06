@@ -6,7 +6,7 @@ import ScrollToTop from "@/components/ScrollToTop";
 import NewsletterPopup from "@/components/NewsletterPopup";
 import { Inter } from "next/font/google";
 import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   shouldShowNewsletterPopup,
   markNewsletterPopupShown,
@@ -24,18 +24,27 @@ export default function RootLayout({
   const isPDFViewer = pathname?.startsWith("/pdf-viewer");
   const isDashboard = pathname?.startsWith("/dashboard");
   const [showNewsletterPopup, setShowNewsletterPopup] = useState(false);
+  const hasShownPopupRef = useRef(false);
 
-  // Check if popup should be shown (only if 6 hours have passed)
+  // Only show popup on homepage, once per session, after delay
   useEffect(() => {
-    // Small delay to ensure smooth page load
+    // Only trigger on homepage
+    if (pathname !== "/") return;
+
+    // Prevent showing multiple times in same session
+    if (hasShownPopupRef.current) return;
+
+    // Check localStorage condition
+    if (!shouldShowNewsletterPopup()) return;
+
+    // Delay to ensure smooth page load
     const timer = setTimeout(() => {
-      if (shouldShowNewsletterPopup()) {
-        setShowNewsletterPopup(true);
-      }
-    }, 1000); // Show popup 1 second after page load
+      setShowNewsletterPopup(true);
+      hasShownPopupRef.current = true;
+    }, 2000);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [pathname]);
 
   // Handle closing the popup
   const handleClosePopup = () => {
