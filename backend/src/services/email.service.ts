@@ -6,7 +6,7 @@ import { env } from "../config/env.js";
  * @returns Configured nodemailer transporter
  */
 function createTransporter() {
-  return nodemailer.createTransporter({
+  return nodemailer.createTransport({
     host: env.SMTP_HOST,
     port: env.SMTP_PORT,
     secure: false, // true for 465, false for other ports

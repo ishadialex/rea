@@ -30,49 +30,49 @@ async function main() {
       {
         name: "Juan Alvarado",
         role: "CEO & Founder",
-        image: "/images/team/team-01.png",
+        image: "/images/team/member-1.jpg",
         instagram: "https://instagram.com/juanalvarado",
         order: 1,
       },
       {
         name: "Maria Santos",
         role: "Chief Investment Officer",
-        image: "/images/team/team-02.png",
+        image: "/images/team/member-2.jpg",
         instagram: "https://instagram.com/mariasantos",
         order: 2,
       },
       {
         name: "Carlos Rivera",
         role: "Head of Real Estate",
-        image: "/images/team/team-03.png",
+        image: "/images/team/member-3.jpg",
         instagram: "https://instagram.com/carlosrivera",
         order: 3,
       },
       {
         name: "Ana Rodriguez",
         role: "Chief Financial Officer",
-        image: "/images/team/team-04.png",
+        image: "/images/team/member-4.jpg",
         instagram: "https://instagram.com/anarodriguez",
         order: 4,
       },
       {
         name: "Diego Martinez",
         role: "VP of Operations",
-        image: "/images/team/team-05.png",
+        image: "/images/team/member-5.jpg",
         instagram: "https://instagram.com/diegomartinez",
         order: 5,
       },
       {
         name: "Sofia Hernandez",
         role: "Head of Marketing",
-        image: "/images/team/team-06.png",
+        image: "/images/team/member-6.jpg",
         instagram: "https://instagram.com/sofiahernandez",
         order: 6,
       },
       {
         name: "Luis Gomez",
         role: "Lead Developer",
-        image: "/images/team/team-07.png",
+        image: "/images/team/member-7.jpg",
         instagram: "https://instagram.com/luisgomez",
         order: 7,
       },
@@ -116,7 +116,7 @@ async function main() {
     prisma.investmentOption.create({
       data: {
         title: "Share Acquisition",
-        image: "/images/investment/investment-01.png",
+        image: "/images/investment/entire-ownership.jpg",
         minInvestment: "$500",
         description:
           "Invest in premium real estate shares with guaranteed returns and professional management.",
@@ -127,7 +127,7 @@ async function main() {
     prisma.investmentOption.create({
       data: {
         title: "Direct Property Investment",
-        image: "/images/investment/investment-02.png",
+        image: "/images/investment/mortgage-backed.jpg",
         minInvestment: "$10,000",
         description:
           "Own a piece of carefully selected premium properties in high-growth markets.",
