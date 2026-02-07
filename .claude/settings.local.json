@@ -14,7 +14,8 @@
       "Bash(npx prisma migrate dev:*)",
       "Bash(node --experimental-strip-types prisma/seed.ts:*)",
       "Bash(npx prisma generate:*)",
-      "Bash(npx jiti:*)"
+      "Bash(npx jiti:*)",
+      "Bash(curl:*)"
     ]
   }
 }

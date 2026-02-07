@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import axios from "axios";
 
 function VerifyOTPContent() {
   const [otp, setOtp] = useState("");
@@ -17,17 +18,37 @@ function VerifyOTPContent() {
     setIsLoading(true);
     setError("");
 
-    // Simulate OTP verification
-    // Replace this with your actual OTP verification logic
-    setTimeout(() => {
-      if (otp === "123456") {
-        // Success - redirect to sign in or dashboard
+    if (!email) {
+      setError("Email is missing. Please try signing up again.");
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      // Call backend verify-otp API using axios
+      const response = await axios.post(
+        "http://localhost:4000/api/auth/verify-otp",
+        {
+          email,
+          code: otp,
+        }
+      );
+
+      if (response.data.success) {
+        // Success - redirect to sign in
+        alert("Email verified successfully! You can now sign in.");
         router.push("/signin?verified=true");
       } else {
-        setError("Invalid OTP code. Please try again.");
+        setError("Verification failed. Please try again.");
         setIsLoading(false);
       }
-    }, 1000);
+    } catch (error: any) {
+      console.error("OTP verification error:", error);
+      const errorMessage =
+        error.response?.data?.message || "Invalid OTP code. Please try again.";
+      setError(errorMessage);
+      setIsLoading(false);
+    }
   };
 
   const handleResend = () => {

@@ -1,18 +1,17 @@
-import { prisma } from "./prisma";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
 export async function getTeamMembers() {
   try {
-    return await prisma.teamMember.findMany({
-      where: { isActive: true },
-      orderBy: { order: "asc" },
-      select: {
-        id: true,
-        name: true,
-        role: true,
-        image: true,
-        instagram: true,
-      },
+    const response = await fetch(`${API_URL}/api/public/team`, {
+      next: { revalidate: 60 }, // Revalidate every 60 seconds
     });
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch team members");
+    }
+
+    const data = await response.json();
+    return data.data || [];
   } catch (error) {
     console.error("Failed to fetch team members:", error);
     return [];
@@ -21,18 +20,16 @@ export async function getTeamMembers() {
 
 export async function getTestimonials() {
   try {
-    return await prisma.testimonial.findMany({
-      where: { isActive: true },
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        name: true,
-        designation: true,
-        content: true,
-        image: true,
-        star: true,
-      },
+    const response = await fetch(`${API_URL}/api/public/testimonials`, {
+      next: { revalidate: 60 },
     });
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch testimonials");
+    }
+
+    const data = await response.json();
+    return data.data || [];
   } catch (error) {
     console.error("Failed to fetch testimonials:", error);
     return [];
@@ -41,18 +38,16 @@ export async function getTestimonials() {
 
 export async function getInvestmentOptions() {
   try {
-    return await prisma.investmentOption.findMany({
-      where: { isActive: true },
-      orderBy: { order: "asc" },
-      select: {
-        id: true,
-        title: true,
-        image: true,
-        minInvestment: true,
-        description: true,
-        link: true,
-      },
+    const response = await fetch(`${API_URL}/api/public/investments`, {
+      next: { revalidate: 60 },
     });
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch investment options");
+    }
+
+    const data = await response.json();
+    return data.data || [];
   } catch (error) {
     console.error("Failed to fetch investment options:", error);
     return [];

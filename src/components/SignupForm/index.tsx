@@ -6,10 +6,12 @@ import { useRouter } from "next/navigation";
 import { PhoneInput } from "react-international-phone";
 import "react-international-phone/style.css";
 import "./phoneInput.css";
+import axios from "axios";
 
 const SignupForm = () => {
   const router = useRouter();
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,6 +20,7 @@ const SignupForm = () => {
   const [phoneError, setPhoneError] = useState("");
   const [emailError, setEmailError] = useState("");
   const [tempPhoneError, setTempPhoneError] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Real-time email validation
   useEffect(() => {
@@ -108,12 +111,17 @@ const SignupForm = () => {
   };
 
   // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validate all fields
-    if (!name.trim()) {
-      alert("Please enter your full name");
+    if (!firstName.trim()) {
+      alert("Please enter your first name");
+      return;
+    }
+
+    if (!lastName.trim()) {
+      alert("Please enter your last name");
       return;
     }
 
@@ -144,8 +152,34 @@ const SignupForm = () => {
       return;
     }
 
-    // If all validations pass, redirect to OTP page
-    router.push(`/verify-otp?email=${encodeURIComponent(email)}`);
+    setIsLoading(true);
+
+    try {
+      // Call backend register API using axios
+      const response = await axios.post(
+        "http://localhost:4000/api/auth/register",
+        {
+          email,
+          password,
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          phone,
+        }
+      );
+
+      if (response.data.success) {
+        // Registration successful, redirect to OTP verification page
+        alert("Registration successful! Please check your email for the OTP code.");
+        router.push(`/verify-otp?email=${encodeURIComponent(email)}`);
+      }
+    } catch (error: any) {
+      console.error("Registration error:", error);
+      const errorMessage =
+        error.response?.data?.message || "Registration failed. Please try again.";
+      alert(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -217,18 +251,35 @@ const SignupForm = () => {
       <form onSubmit={handleSubmit}>
         <div className="mb-8">
           <label
-            htmlFor="name"
+            htmlFor="firstName"
             className="text-dark mb-3 block text-sm dark:text-white"
           >
             {" "}
-            Full Name{" "}
+            First Name{" "}
           </label>
           <input
             type="text"
-            name="name"
-            placeholder="Enter your full name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            name="firstName"
+            placeholder="Enter your first name"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            className="border-stroke dark:text-body-color-dark dark:shadow-two text-body-color focus:border-primary dark:focus:border-primary w-full rounded-xs border bg-[#f8f8f8] px-6 py-3 text-base outline-hidden transition-all duration-300 dark:border-transparent dark:bg-[#2C303B] dark:focus:shadow-none"
+          />
+        </div>
+        <div className="mb-8">
+          <label
+            htmlFor="lastName"
+            className="text-dark mb-3 block text-sm dark:text-white"
+          >
+            {" "}
+            Last Name{" "}
+          </label>
+          <input
+            type="text"
+            name="lastName"
+            placeholder="Enter your last name"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
             className="border-stroke dark:text-body-color-dark dark:shadow-two text-body-color focus:border-primary dark:focus:border-primary w-full rounded-xs border bg-[#f8f8f8] px-6 py-3 text-base outline-hidden transition-all duration-300 dark:border-transparent dark:bg-[#2C303B] dark:focus:shadow-none"
           />
         </div>
@@ -366,8 +417,12 @@ const SignupForm = () => {
           </label>
         </div>
         <div className="mb-6">
-          <button type="submit" className="shadow-submit dark:shadow-submit-dark bg-primary hover:bg-primary/90 flex w-full items-center justify-center rounded-xs px-9 py-4 text-base font-medium text-white duration-300">
-            Sign up
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="shadow-submit dark:shadow-submit-dark bg-primary hover:bg-primary/90 disabled:bg-primary/50 disabled:cursor-not-allowed flex w-full items-center justify-center rounded-xs px-9 py-4 text-base font-medium text-white duration-300"
+          >
+            {isLoading ? "Creating account..." : "Sign up"}
           </button>
         </div>
       </form>

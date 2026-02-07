@@ -1,0 +1,49 @@
+import { Router } from "express";
+import monitorRoutes from "./monitor.routes.js";
+import publicRoutes from "./public.routes.js";
+import authRoutes from "./auth.routes.js";
+import profileRoutes from "./profile.routes.js";
+import settingsRoutes from "./settings.routes.js";
+import sessionsRoutes from "./sessions.routes.js";
+import supportRoutes from "./support.routes.js";
+import transferRoutes from "./transfer.routes.js";
+import transactionsRoutes from "./transactions.routes.js";
+import investmentsRoutes from "./investments.routes.js";
+import propertiesRoutes from "./properties.routes.js";
+import notificationsRoutes from "./notifications.routes.js";
+import referralRoutes from "./referral.routes.js";
+import fundRoutes from "./fund.routes.js";
+import adminTeamRoutes from "./admin/team.routes.js";
+import adminTestimonialsRoutes from "./admin/testimonials.routes.js";
+import adminInvestmentsRoutes from "./admin/investments.routes.js";
+
+const router = Router();
+
+// Monitoring routes
+router.use("/", monitorRoutes);
+
+// Public routes (no auth)
+router.use("/public", publicRoutes);
+
+// Auth routes
+router.use("/auth", authRoutes);
+
+// User routes (JWT required)
+router.use("/profile", profileRoutes);
+router.use("/settings", settingsRoutes);
+router.use("/sessions", sessionsRoutes);
+router.use("/support", supportRoutes);
+router.use("/transfers", transferRoutes);
+router.use("/transactions", transactionsRoutes);
+router.use("/investments", investmentsRoutes);
+router.use("/properties", propertiesRoutes);
+router.use("/notifications", notificationsRoutes);
+router.use("/referral", referralRoutes);
+router.use("/fund", fundRoutes);
+
+// Admin routes (API key required)
+router.use("/admin/team", adminTeamRoutes);
+router.use("/admin/testimonials", adminTestimonialsRoutes);
+router.use("/admin/investments", adminInvestmentsRoutes);
+
+export default router;

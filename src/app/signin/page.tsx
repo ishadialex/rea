@@ -5,12 +5,7 @@ import { useState, FormEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { loadReCaptchaScript, executeReCaptcha } from "@/utils/recaptcha";
-
-// Hardcoded credentials
-const VALID_CREDENTIALS = {
-  email: "admin@alvaradoassociatepartners.com",
-  password: "admin123",
-};
+import axios from "axios";
 
 const SigninPage = () => {
   const router = useRouter();
@@ -50,31 +45,36 @@ const SigninPage = () => {
     try {
       // Execute reCAPTCHA v3
       const token = await executeReCaptcha(RECAPTCHA_SITE_KEY, "login");
-
-      // In a real application, you would send this token to your backend
-      // for verification. For now, we'll just proceed with login.
       console.log("reCAPTCHA token:", token);
 
-      // Simulate a slight delay for better UX
-      setTimeout(() => {
-        if (
-          email === VALID_CREDENTIALS.email &&
-          password === VALID_CREDENTIALS.password
-        ) {
-          // Store login state in localStorage
-          localStorage.setItem("isLoggedIn", "true");
-          localStorage.setItem("userEmail", email);
-
-          // Redirect to dashboard
-          router.push("/dashboard");
-        } else {
-          setError("Invalid email or password. Please try again.");
-          setIsLoading(false);
+      // Call backend login API using axios
+      const response = await axios.post(
+        "http://localhost:4000/api/auth/login",
+        {
+          email,
+          password,
         }
-      }, 1500);
-    } catch (error) {
-      console.error("reCAPTCHA error:", error);
-      setError("Security verification failed. Please try again.");
+      );
+
+      if (response.data.success) {
+        // Store tokens and user info in localStorage
+        localStorage.setItem("accessToken", response.data.data.accessToken);
+        localStorage.setItem("refreshToken", response.data.data.refreshToken);
+        localStorage.setItem("isLoggedIn", "true");
+        localStorage.setItem("userEmail", email);
+        localStorage.setItem("user", JSON.stringify(response.data.data.user));
+
+        // Redirect to dashboard
+        router.push("/dashboard");
+      } else {
+        setError("Login failed. Please try again.");
+        setIsLoading(false);
+      }
+    } catch (error: any) {
+      console.error("Login error:", error);
+      const errorMessage =
+        error.response?.data?.message || "Invalid email or password. Please try again.";
+      setError(errorMessage);
       setIsLoading(false);
     }
   };
@@ -254,10 +254,10 @@ const SigninPage = () => {
                       Demo Credentials:
                     </p>
                     <p className="text-blue-800 dark:text-blue-400">
-                      Email: admin@alvaradoassociatepartners.com
+                      Email: demo@alvarado.com
                     </p>
                     <p className="text-blue-800 dark:text-blue-400">
-                      Password: admin123
+                      Password: Demo1234!
                     </p>
                   </div>
 
