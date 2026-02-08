@@ -1,31 +1,22 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Investment } from "@/types/investment";
 import Link from "next/link";
-
-// Mock investments data (in real app, this would come from user's investment history)
-const mockUserInvestments: Investment[] = [
-  // Empty by default - will be populated after user makes investments
-  // Example structure when populated:
-  // {
-  //   id: "INV-001",
-  //   propertyId: "prop-002",
-  //   propertyTitle: "Beachfront Villa - Pooled Airbnb Investment",
-  //   propertyImage: "/images/how-it-works/property-2.jpg",
-  //   amount: 10000,
-  //   investmentDate: "2026-02-01",
-  //   status: "active",
-  //   investmentType: "pooled",
-  //   expectedReturn: 2200,
-  //   monthlyReturn: 183,
-  // },
-];
+import { api } from "@/lib/api";
 
 export default function InvestmentsPage() {
-  const [investments] = useState<Investment[]>(mockUserInvestments);
+  const [investments, setInvestments] = useState<Investment[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Calculate stats
+  useEffect(() => {
+    api.getInvestments().then((result) => {
+      if (result.success && result.data) {
+        setInvestments(result.data as Investment[]);
+      }
+    }).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+
   const stats = useMemo(() => {
     const totalInvested = investments.reduce((sum, inv) => sum + inv.amount, 0);
     const totalExpectedReturns = investments.reduce((sum, inv) => sum + inv.expectedReturn, 0);
@@ -58,9 +49,19 @@ export default function InvestmentsPage() {
     return text[status as keyof typeof text] || status;
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <div className="text-center">
+          <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
+          <p className="mt-4 text-body-color dark:text-body-color-dark">Loading investments...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen">
-      {/* Header */}
       <div className="mb-6 md:mb-8">
         <h1 className="text-2xl font-bold text-black dark:text-white md:text-3xl">
           My Investments
@@ -72,7 +73,6 @@ export default function InvestmentsPage() {
 
       {investments.length > 0 ? (
         <>
-          {/* Stats Section */}
           <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow dark:border-gray-800 dark:bg-gray-dark md:p-6">
               <p className="mb-2 text-sm text-body-color dark:text-body-color-dark">
@@ -108,33 +108,19 @@ export default function InvestmentsPage() {
             </div>
           </div>
 
-          {/* Investments List - Desktop Table */}
+          {/* Desktop Table */}
           <div className="hidden rounded-xl border border-gray-200 bg-white shadow dark:border-gray-800 dark:bg-gray-dark md:block">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-800">
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-black dark:text-white">
-                      Property
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-black dark:text-white">
-                      Type
-                    </th>
-                    <th className="px-6 py-4 text-right text-sm font-semibold text-black dark:text-white">
-                      Amount
-                    </th>
-                    <th className="px-6 py-4 text-right text-sm font-semibold text-black dark:text-white">
-                      Monthly Return
-                    </th>
-                    <th className="px-6 py-4 text-right text-sm font-semibold text-black dark:text-white">
-                      Expected Total
-                    </th>
-                    <th className="px-6 py-4 text-center text-sm font-semibold text-black dark:text-white">
-                      Status
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-black dark:text-white">
-                      Date
-                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-black dark:text-white">Property</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-black dark:text-white">Type</th>
+                    <th className="px-6 py-4 text-right text-sm font-semibold text-black dark:text-white">Amount</th>
+                    <th className="px-6 py-4 text-right text-sm font-semibold text-black dark:text-white">Monthly Return</th>
+                    <th className="px-6 py-4 text-right text-sm font-semibold text-black dark:text-white">Expected Total</th>
+                    <th className="px-6 py-4 text-center text-sm font-semibold text-black dark:text-white">Status</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-black dark:text-white">Date</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -147,17 +133,25 @@ export default function InvestmentsPage() {
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center">
-                          <img
-                            src={investment.propertyImage}
-                            alt={investment.propertyTitle}
-                            className="mr-3 h-12 w-12 rounded-lg object-cover"
-                          />
+                          {investment.propertyImage ? (
+                            <img
+                              src={investment.propertyImage}
+                              alt={investment.propertyTitle}
+                              className="mr-3 h-12 w-12 rounded-lg object-cover"
+                            />
+                          ) : (
+                            <div className="mr-3 flex h-12 w-12 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800">
+                              <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                              </svg>
+                            </div>
+                          )}
                           <div>
                             <Link
                               href={`/dashboard/property-market/properties/${investment.propertyId}`}
                               className="font-semibold text-black hover:text-primary dark:text-white dark:hover:text-primary"
                             >
-                              {investment.propertyTitle}
+                              {investment.propertyTitle || "Property Investment"}
                             </Link>
                             <p className="text-xs text-body-color dark:text-body-color-dark">
                               ID: {investment.id}
@@ -194,7 +188,7 @@ export default function InvestmentsPage() {
             </div>
           </div>
 
-          {/* Investments List - Mobile Cards */}
+          {/* Mobile Cards */}
           <div className="space-y-4 md:hidden">
             {investments.map((investment) => (
               <div
@@ -202,17 +196,25 @@ export default function InvestmentsPage() {
                 className="rounded-xl border border-gray-200 bg-white p-4 shadow dark:border-gray-800 dark:bg-gray-dark"
               >
                 <div className="mb-3 flex items-start">
-                  <img
-                    src={investment.propertyImage}
-                    alt={investment.propertyTitle}
-                    className="mr-3 h-16 w-16 rounded-lg object-cover"
-                  />
+                  {investment.propertyImage ? (
+                    <img
+                      src={investment.propertyImage}
+                      alt={investment.propertyTitle}
+                      className="mr-3 h-16 w-16 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <div className="mr-3 flex h-16 w-16 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800">
+                      <svg className="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                    </div>
+                  )}
                   <div className="flex-1">
                     <Link
                       href={`/dashboard/property-market/properties/${investment.propertyId}`}
                       className="font-semibold text-black hover:text-primary dark:text-white"
                     >
-                      {investment.propertyTitle}
+                      {investment.propertyTitle || "Property Investment"}
                     </Link>
                     <p className="mt-1 text-xs text-body-color dark:text-body-color-dark">
                       {investment.id}
@@ -222,49 +224,31 @@ export default function InvestmentsPage() {
 
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-sm text-body-color dark:text-body-color-dark">
-                      Type
-                    </span>
+                    <span className="text-sm text-body-color dark:text-body-color-dark">Type</span>
                     <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${investment.investmentType === "individual" ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" : "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"}`}>
                       {investment.investmentType === "individual" ? "Individual" : "Pooled"}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-body-color dark:text-body-color-dark">
-                      Amount
-                    </span>
-                    <span className="font-semibold text-black dark:text-white">
-                      ${investment.amount.toLocaleString()}
-                    </span>
+                    <span className="text-sm text-body-color dark:text-body-color-dark">Amount</span>
+                    <span className="font-semibold text-black dark:text-white">${investment.amount.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-body-color dark:text-body-color-dark">
-                      Monthly Return
-                    </span>
-                    <span className="font-semibold text-green-600 dark:text-green-400">
-                      ${investment.monthlyReturn.toLocaleString()}
-                    </span>
+                    <span className="text-sm text-body-color dark:text-body-color-dark">Monthly Return</span>
+                    <span className="font-semibold text-green-600 dark:text-green-400">${investment.monthlyReturn.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-body-color dark:text-body-color-dark">
-                      Expected Total
-                    </span>
-                    <span className="font-semibold text-green-600 dark:text-green-400">
-                      ${investment.expectedReturn.toLocaleString()}
-                    </span>
+                    <span className="text-sm text-body-color dark:text-body-color-dark">Expected Total</span>
+                    <span className="font-semibold text-green-600 dark:text-green-400">${investment.expectedReturn.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-body-color dark:text-body-color-dark">
-                      Status
-                    </span>
+                    <span className="text-sm text-body-color dark:text-body-color-dark">Status</span>
                     <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${getStatusBadge(investment.status)}`}>
                       {getStatusText(investment.status)}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-body-color dark:text-body-color-dark">
-                      Date
-                    </span>
+                    <span className="text-sm text-body-color dark:text-body-color-dark">Date</span>
                     <span className="text-sm text-body-color dark:text-body-color-dark">
                       {new Date(investment.investmentDate).toLocaleDateString()}
                     </span>
@@ -275,7 +259,6 @@ export default function InvestmentsPage() {
           </div>
         </>
       ) : (
-        /* Empty State */
         <div className="rounded-xl border border-gray-200 bg-white p-12 text-center shadow dark:border-gray-800 dark:bg-gray-dark">
           <svg
             className="mx-auto mb-4 h-16 w-16 text-gray-400"

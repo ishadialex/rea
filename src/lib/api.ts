@@ -187,14 +187,20 @@ export class ApiClient {
     return response.data;
   }
 
-  async getTransactions() {
-    const response = await this.axiosInstance.get<ApiResponse<any[]>>("/api/transactions");
+  async getTransactions(limit?: number, type?: string) {
+    const params = new URLSearchParams();
+    if (limit) params.set("limit", String(limit));
+    if (type) params.set("type", type);
+    const query = params.toString() ? `?${params.toString()}` : "";
+    const response = await this.axiosInstance.get<ApiResponse<any[]>>(`/api/transactions${query}`);
     return response.data;
   }
 
   async getBalanceSummary() {
     const response = await this.axiosInstance.get<ApiResponse<{
       balance: number;
+      pendingDeposits: number;
+      pendingWithdrawals: number;
       breakdown: {
         deposits: number;
         profits: number;
@@ -206,11 +212,6 @@ export class ApiClient {
         transferOut: number;
       };
     }>>("/api/transactions/balance");
-    return response.data;
-  }
-
-  async getInvestments() {
-    const response = await this.axiosInstance.get<ApiResponse<any[]>>("/api/investments");
     return response.data;
   }
 
@@ -276,13 +277,37 @@ export class ApiClient {
     return response.data;
   }
 
-  async getProperties() {
-    const response = await this.axiosInstance.get<ApiResponse<any[]>>("/api/properties");
+  async getProperties(filters?: { category?: string; investmentType?: string; status?: string; search?: string }) {
+    let url = "/api/properties";
+    if (filters) {
+      const params = new URLSearchParams();
+      if (filters.category) params.append("category", filters.category);
+      if (filters.investmentType) params.append("investmentType", filters.investmentType);
+      if (filters.status) params.append("status", filters.status);
+      if (filters.search) params.append("search", filters.search);
+      if (params.toString()) url += `?${params.toString()}`;
+    }
+    const response = await this.axiosInstance.get<ApiResponse<any[]>>(url);
+    return response.data;
+  }
+
+  async getProperty(id: string) {
+    const response = await this.axiosInstance.get<ApiResponse<any>>(`/api/properties/${id}`);
     return response.data;
   }
 
   async getFeaturedProperties() {
     const response = await this.axiosInstance.get<ApiResponse<any[]>>("/api/properties/featured");
+    return response.data;
+  }
+
+  async getInvestments() {
+    const response = await this.axiosInstance.get<ApiResponse<any[]>>("/api/investments");
+    return response.data;
+  }
+
+  async createPropertyInvestment(propertyId: string, amount: number) {
+    const response = await this.axiosInstance.post<ApiResponse<{ id: string }>>("/api/investments/property", { propertyId, amount });
     return response.data;
   }
 

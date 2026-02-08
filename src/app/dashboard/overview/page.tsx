@@ -15,6 +15,8 @@ interface UserData {
 
 interface BalanceSummary {
   balance: number;
+  pendingDeposits: number;
+  pendingWithdrawals: number;
   deposits: number;
   profits: number;
   adminBonuses: number;
@@ -35,7 +37,7 @@ interface Investment {
 
 interface Transaction {
   id: string;
-  type: "deposit" | "withdrawal" | "investment" | "transfer" | "referral";
+  type: "deposit" | "withdrawal" | "investment" | "transfer" | "referral" | "profit" | "admin_bonus" | "transfer_sent" | "transfer_received";
   amount: number;
   status: "completed" | "pending" | "failed";
   date: string;
@@ -66,6 +68,8 @@ const fetchBalanceSummary = async (): Promise<BalanceSummary> => {
     if (result.success && result.data) {
       return {
         balance: result.data.balance,
+        pendingDeposits: result.data.pendingDeposits ?? 0,
+        pendingWithdrawals: result.data.pendingWithdrawals ?? 0,
         deposits: result.data.breakdown.deposits,
         profits: result.data.breakdown.profits,
         adminBonuses: result.data.breakdown.adminBonuses,
@@ -77,7 +81,7 @@ const fetchBalanceSummary = async (): Promise<BalanceSummary> => {
   } catch {
     // ignore
   }
-  return { balance: 0, deposits: 0, profits: 0, adminBonuses: 0, referralBonuses: 0, withdrawals: 0, investedFunds: 0 };
+  return { balance: 0, pendingDeposits: 0, pendingWithdrawals: 0, deposits: 0, profits: 0, adminBonuses: 0, referralBonuses: 0, withdrawals: 0, investedFunds: 0 };
 };
 
 // Mock API functions - Replace these with actual API calls
@@ -135,43 +139,54 @@ const fetchInvestments = async (): Promise<Investment[]> => {
 };
 
 const fetchTransactions = async (): Promise<Transaction[]> => {
-  await new Promise((resolve) => setTimeout(resolve, 900));
+  try {
+    const [txResult, fundOpsResult] = await Promise.all([
+      api.getTransactions(10),
+      api.getFundOperations(),
+    ]);
 
-  // In production, replace with: const response = await fetch('/api/transactions?limit=5'); return response.json();
-  return [
-    {
-      id: "TXN001",
-      type: "deposit",
-      amount: 5000,
-      status: "completed",
-      date: "2026-02-05",
-      description: "Bank Transfer Deposit",
-    },
-    {
-      id: "TXN002",
-      type: "investment",
-      amount: 3000,
-      status: "completed",
-      date: "2026-02-04",
-      description: "Property Investment",
-    },
-    {
-      id: "TXN003",
-      type: "referral",
-      amount: 250,
-      status: "completed",
-      date: "2026-02-02",
-      description: "Referral Bonus",
-    },
-    {
-      id: "TXN004",
-      type: "withdrawal",
-      amount: 1500,
-      status: "pending",
-      date: "2026-02-01",
-      description: "Bank Withdrawal",
-    },
-  ];
+    const transactions: Transaction[] = [];
+
+    if (txResult.success && txResult.data) {
+      txResult.data.forEach((tx: any) => {
+        transactions.push({
+          id: tx.id,
+          type: tx.type,
+          amount: Math.abs(tx.amount),
+          status: tx.status,
+          date: tx.createdAt,
+          description: tx.description || tx.type.replace(/_/g, " "),
+        });
+      });
+    }
+
+    if (fundOpsResult.success && fundOpsResult.data) {
+      fundOpsResult.data.forEach((op: any) => {
+        // Skip if a matching completed transaction already exists
+        const alreadyRecorded = transactions.some(
+          (t) => t.description?.includes(op.reference)
+        );
+        if (!alreadyRecorded) {
+          transactions.push({
+            id: op.id,
+            type: op.type,
+            amount: op.amount,
+            status: op.status === "approved" ? "completed" : op.status,
+            date: op.createdAt,
+            description: `${op.method ? op.method.charAt(0).toUpperCase() + op.method.slice(1) + " " : ""}${op.type.charAt(0).toUpperCase() + op.type.slice(1)} (${op.reference})`,
+          });
+        }
+      });
+    }
+
+    // Sort by date descending, return top 5
+    return transactions
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 5);
+  } catch {
+    // ignore
+  }
+  return [];
 };
 
 const fetchFeaturedProperties = async (): Promise<FeaturedProperty[]> => {
@@ -357,6 +372,24 @@ export default function DashboardOverviewPage() {
             </svg>
           </div>
         );
+      case "profit":
+      case "admin_bonus":
+        return (
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-900/30">
+            <svg className="h-5 w-5 text-yellow-600 dark:text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        );
+      case "transfer_sent":
+      case "transfer_received":
+        return (
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/30">
+            <svg className="h-5 w-5 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+            </svg>
+          </div>
+        );
       default:
         return (
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
@@ -466,9 +499,16 @@ export default function DashboardOverviewPage() {
               <p className="text-2xl font-bold text-black dark:text-white md:text-3xl">
                 ${stats.accountBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </p>
-              <p className="mt-1 text-xs text-body-color dark:text-body-color-dark">
-                Available for investment
-              </p>
+              {(data.balanceSummary?.pendingDeposits ?? 0) > 0 && (
+                <p className="mt-1 text-xs text-yellow-600 dark:text-yellow-400">
+                  +${(data.balanceSummary!.pendingDeposits).toLocaleString(undefined, { minimumFractionDigits: 2 })} pending
+                </p>
+              )}
+              {(data.balanceSummary?.pendingDeposits ?? 0) === 0 && (
+                <p className="mt-1 text-xs text-body-color dark:text-body-color-dark">
+                  Available for investment
+                </p>
+              )}
             </div>
 
             {/* Total Invested */}
@@ -650,12 +690,12 @@ export default function DashboardOverviewPage() {
                     <div className="text-right">
                       <p
                         className={`font-semibold ${
-                          transaction.type === "deposit" || transaction.type === "referral"
+                          ["deposit", "referral", "profit", "admin_bonus", "transfer_received"].includes(transaction.type)
                             ? "text-green-600 dark:text-green-400"
                             : "text-red-600 dark:text-red-400"
                         }`}
                       >
-                        {transaction.type === "deposit" || transaction.type === "referral" ? "+" : "-"}$
+                        {["deposit", "referral", "profit", "admin_bonus", "transfer_received"].includes(transaction.type) ? "+" : "-"}$
                         {transaction.amount.toLocaleString()}
                       </p>
                       <span

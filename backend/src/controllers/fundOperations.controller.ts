@@ -89,17 +89,43 @@ export async function createWithdrawal(req: Request, res: Response) {
       return error(res, "Invalid withdrawal amount", 400);
     }
 
-    // Check user balance
+    // Check user exists
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { balance: true, firstName: true, lastName: true, email: true },
+      select: { firstName: true, lastName: true, email: true },
     });
 
     if (!user) {
       return error(res, "User not found", 404);
     }
 
-    if (user.balance < numAmount) {
+    // Compute dynamic balance from transactions + completed fund operations
+    const [transactions, completedFundOps] = await Promise.all([
+      prisma.transaction.findMany({
+        where: { userId, status: "completed" },
+        select: { type: true, amount: true },
+      }),
+      prisma.fundOperation.findMany({
+        where: { userId, status: { in: ["completed", "approved"] } },
+        select: { type: true, amount: true },
+      }),
+    ]);
+
+    let balance = 0;
+    for (const tx of transactions) {
+      switch (tx.type) {
+        case "deposit": case "profit": case "admin_bonus": case "referral": case "transfer_received":
+          balance += tx.amount; break;
+        case "withdrawal": case "investment": case "transfer_sent":
+          balance -= Math.abs(tx.amount); break;
+      }
+    }
+    for (const op of completedFundOps) {
+      if (op.type === "deposit") balance += op.amount;
+      else if (op.type === "withdrawal") balance -= op.amount;
+    }
+
+    if (balance < numAmount) {
       return error(res, "Insufficient balance", 400);
     }
 

@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { InvestmentProperty, InvestmentRequest } from "@/types/investment";
+import { InvestmentProperty } from "@/types/investment";
 import Popup from "@/components/Popup";
+import { api } from "@/lib/api";
 
 interface InvestmentModalProps {
   isOpen: boolean;
@@ -87,30 +88,6 @@ const InvestmentModal = ({
     return { valid: true };
   };
 
-  // Mock API function for creating investment
-  const createInvestment = async (
-    request: InvestmentRequest
-  ): Promise<{ success: boolean; investmentId?: string; error?: string }> => {
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    // Validation
-    const validation = validateInvestment();
-    if (!validation.valid) {
-      return { success: false, error: validation.error };
-    }
-
-    // In real app, this would:
-    // 1. Create investment record in database
-    // 2. Deduct wallet balance OR process payment
-    // 3. Update property currentFunded
-    // 4. Send confirmation email
-
-    return {
-      success: true,
-      investmentId: `INV-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    };
-  };
-
   // Handle wallet payment
   const handleWalletPayment = async () => {
     const validation = validateInvestment();
@@ -124,30 +101,26 @@ const InvestmentModal = ({
     setIsProcessing(true);
 
     try {
-      const result = await createInvestment({
-        propertyId: property.id,
-        amount,
-        paymentMethod: "wallet",
-      });
+      const result = await api.createPropertyInvestment(property.id, amount);
 
       if (result.success) {
         setPopupMessage(
-          `Successfully invested $${amount.toLocaleString()} in ${property.title}. Your investment ID is ${result.investmentId}.`
+          `Successfully invested $${amount.toLocaleString()} in ${property.title}.`
         );
         setPopupType("success");
         setShowPopup(true);
 
-        // Redirect to investments page after showing success
         setTimeout(() => {
           router.push("/dashboard/investments");
         }, 3000);
       } else {
-        setPopupMessage(result.error || "Investment failed. Please try again.");
+        setPopupMessage(result.message || "Investment failed. Please try again.");
         setPopupType("error");
         setShowPopup(true);
       }
-    } catch (error) {
-      setPopupMessage("Investment failed. Please try again.");
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || "Investment failed. Please try again.";
+      setPopupMessage(msg);
       setPopupType("error");
       setShowPopup(true);
     } finally {

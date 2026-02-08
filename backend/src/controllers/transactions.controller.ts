@@ -7,10 +7,20 @@ export async function getBalanceSummary(req: Request, res: Response) {
   try {
     const userId = req.userId!;
 
-    const transactions = await prisma.transaction.findMany({
-      where: { userId, status: "completed" },
-      select: { type: true, amount: true },
-    });
+    const [transactions, pendingFundOps, completedFundOps] = await Promise.all([
+      prisma.transaction.findMany({
+        where: { userId, status: "completed" },
+        select: { type: true, amount: true },
+      }),
+      prisma.fundOperation.findMany({
+        where: { userId, status: "pending" },
+        select: { type: true, amount: true },
+      }),
+      prisma.fundOperation.findMany({
+        where: { userId, status: { in: ["completed", "approved"] } },
+        select: { type: true, amount: true },
+      }),
+    ]);
 
     let deposits = 0;
     let profits = 0;
@@ -34,13 +44,29 @@ export async function getBalanceSummary(req: Request, res: Response) {
       }
     }
 
+    // Include completed/approved fund operations in balance
+    for (const op of completedFundOps) {
+      if (op.type === "deposit") deposits += op.amount;
+      else if (op.type === "withdrawal") withdrawals += op.amount;
+    }
+
     // balance = (deposits + profits + admin bonuses + referral bonuses)
     //         - (withdrawals + invested funds + transfers out)
     const balance = (deposits + profits + adminBonuses + referralBonuses)
       - (withdrawals + investedFunds + transferOut);
 
+    // Pending amounts from fund operations awaiting admin approval
+    const pendingDeposits = pendingFundOps
+      .filter((op) => op.type === "deposit")
+      .reduce((sum, op) => sum + op.amount, 0);
+    const pendingWithdrawals = pendingFundOps
+      .filter((op) => op.type === "withdrawal")
+      .reduce((sum, op) => sum + op.amount, 0);
+
     return success(res, {
       balance,
+      pendingDeposits,
+      pendingWithdrawals,
       breakdown: {
         deposits,
         profits,
@@ -85,7 +111,7 @@ export async function getTransactions(req: Request, res: Response) {
 export async function getTransaction(req: Request, res: Response) {
   try {
     const userId = req.userId!;
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const transaction = await prisma.transaction.findUnique({
       where: { id, userId },

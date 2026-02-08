@@ -70,6 +70,7 @@ model User {
   profilePhoto     String?
   bio              String    @default("")
   occupation       String    @default("")
+  role             String    @default("user") // user | admin | superadmin
   emailVerified    Boolean   @default(false)
   twoFactorEnabled Boolean   @default(false)
   twoFactorSecret  String?
@@ -231,15 +232,19 @@ model Transaction {
 // ──────────────────────────────────────────────
 
 model UserInvestment {
-  id                 String           @id @default(auto()) @map("_id") @db.ObjectId
-  userId             String           @db.ObjectId
-  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  investmentOptionId String           @db.ObjectId
-  investmentOption   InvestmentOption  @relation(fields: [investmentOptionId], references: [id])
+  id                 String            @id @default(auto()) @map("_id") @db.ObjectId
+  userId             String            @db.ObjectId
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  investmentOptionId String?           @db.ObjectId
+  investmentOption   InvestmentOption? @relation(fields: [investmentOptionId], references: [id])
+  propertyId         String?           @db.ObjectId
+  property           Property?         @relation(fields: [propertyId], references: [id])
   amount             Float
-  status             String           @default("active") // active | completed | cancelled
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
+  expectedROI        Float             @default(0)
+  monthlyReturn      Float             @default(0)
+  status             String            @default("active") // active | completed | cancelled
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
 }
 
 // ──────────────────────────────────────────────
@@ -247,21 +252,35 @@ model UserInvestment {
 // ──────────────────────────────────────────────
 
 model Property {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  title       String
-  image       String
-  location    String
-  price       Float
-  type        String   // residential | commercial | land
-  bedrooms    Int      @default(0)
-  bathrooms   Int      @default(0)
-  sqft        Int      @default(0)
-  description String
-  features    String[] @default([])
-  isActive    Boolean  @default(true)
-  isFeatured  Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id               String           @id @default(auto()) @map("_id") @db.ObjectId
+  title            String
+  images           String[]         @default([])
+  location         String
+  price            Float            @default(0)
+  type             String           @default("residential") // residential | commercial | land
+  category         String           @default("arbitrage")   // arbitrage | mortgage | airbnb
+  investmentType   String           @default("individual")  // individual | pooled
+  minInvestment    Float            @default(0)
+  maxInvestment    Float            @default(0)
+  targetAmount     Float            @default(0)
+  currentFunded    Float            @default(0)
+  investorCount    Int              @default(0)
+  expectedROI      Float            @default(0)
+  monthlyReturn    Float            @default(0)
+  duration         Int              @default(12)
+  bedrooms         Int              @default(0)
+  bathrooms        Int              @default(0)
+  parking          Int              @default(0)
+  sqft             Int              @default(0)
+  description      String           @default("")
+  features         String[]         @default([])
+  investmentStatus String           @default("available") // available | fully-funded | coming-soon | closed
+  riskLevel        String           @default("low")        // low | medium | high
+  isActive         Boolean          @default(true)
+  isFeatured       Boolean          @default(false)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  userInvestments  UserInvestment[]
 }
 
 // ──────────────────────────────────────────────

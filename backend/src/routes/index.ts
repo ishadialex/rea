@@ -19,6 +19,8 @@ import fundOperationsRoutes from "./fundOperations.routes.js";
 import adminTeamRoutes from "./admin/team.routes.js";
 import adminTestimonialsRoutes from "./admin/testimonials.routes.js";
 import adminInvestmentsRoutes from "./admin/investments.routes.js";
+import adminPropertiesRoutes from "./admin/properties.routes.js";
+import adminUsersRoutes from "./admin/users.routes.js";
 
 const router = Router();
 
@@ -47,9 +49,11 @@ router.use("/fund", fundRoutes);
 router.use("/payment-methods", paymentMethodsRoutes);
 router.use("/fund-operations", fundOperationsRoutes);
 
-// Admin routes (API key required)
+// Admin routes (API key OR admin role required)
 router.use("/admin/team", adminTeamRoutes);
 router.use("/admin/testimonials", adminTestimonialsRoutes);
 router.use("/admin/investments", adminInvestmentsRoutes);
+router.use("/admin/properties", adminPropertiesRoutes);
+router.use("/admin/users", adminUsersRoutes);
 
 export default router;
