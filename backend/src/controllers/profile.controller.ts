@@ -57,6 +57,7 @@ export async function updateProfile(req: Request, res: Response) {
       "state",
       "postalCode",
       "country",
+      "profilePhoto",
       "bio",
       "occupation",
     ];

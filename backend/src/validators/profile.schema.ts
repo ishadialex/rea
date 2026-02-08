@@ -11,6 +11,7 @@ export const updateProfileSchema = z.object({
   state: z.string().max(100).optional(),
   postalCode: z.string().max(20).optional(),
   country: z.string().max(100).optional(),
+  profilePhoto: z.string().max(500).nullable().optional(),
   bio: z.string().max(500).optional(),
   occupation: z.string().max(100).optional(),
 });
