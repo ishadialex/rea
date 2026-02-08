@@ -9,6 +9,9 @@ function SuccessPageContent() {
   const method = searchParams.get("method") as "bank" | "card" | "crypto" | null;
   const amount = searchParams.get("amount");
   const email = searchParams.get("email");
+  const reference = searchParams.get("reference");
+  const manual = searchParams.get("manual") === "true";
+  const crypto = searchParams.get("crypto");
 
   const getMethodTitle = () => {
     switch (method) {
@@ -24,13 +27,21 @@ function SuccessPageContent() {
   };
 
   const getMethodDescription = () => {
+    const formattedAmount = amount ? parseFloat(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00";
+
     switch (method) {
       case "bank":
-        return `Your bank transfer deposit request for $${amount ? parseFloat(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"} has been received. Bank account details have been sent to ${email || "your email"}.`;
+        if (manual) {
+          return `Your manual deposit request for $${formattedAmount} has been submitted. Bank account details will be sent to ${email || "your email"} shortly.`;
+        }
+        return `Your bank transfer deposit request for $${formattedAmount} has been received.`;
       case "card":
         return "Your card payment has been processed successfully. Your funds are now available in your account.";
       case "crypto":
-        return "Your cryptocurrency deposit request has been received. You'll receive an email with the wallet address and QR code to complete the deposit.";
+        if (manual) {
+          return `Your manual ${crypto || "cryptocurrency"} deposit request for $${formattedAmount} has been submitted. Wallet details will be sent to ${email || "your email"} shortly.`;
+        }
+        return `Your ${crypto || "cryptocurrency"} deposit request has been received. Please complete the transfer to the wallet address provided.`;
       default:
         return "Your deposit request has been submitted successfully.";
     }
@@ -39,10 +50,16 @@ function SuccessPageContent() {
   const getProcessingInfo = () => {
     switch (method) {
       case "bank":
+        if (manual) {
+          return "You'll receive an email with bank account details within 1 hour. After completing the transfer, processing typically takes 1-3 business days.";
+        }
         return "Bank transfers typically take 1-3 business days to process. You'll receive a confirmation email once we receive your transfer.";
       case "card":
         return "Card payments are processed instantly. Your funds are now available in your account.";
       case "crypto":
+        if (manual) {
+          return `You'll receive an email with the ${crypto || "cryptocurrency"} wallet address within 1 hour. After sending, processing typically takes 10-30 minutes depending on network confirmations.`;
+        }
         return "Cryptocurrency deposits are confirmed after the required network confirmations (usually 10-30 minutes). We'll notify you once complete.";
       default:
         return "";
@@ -78,13 +95,27 @@ function SuccessPageContent() {
             {getMethodDescription()}
           </p>
 
+          {reference && (
+            <div className="mb-6 rounded-lg border border-primary bg-primary/5 p-4 dark:border-primary/50 dark:bg-primary/10">
+              <p className="mb-1 text-sm text-body-color dark:text-body-color-dark">
+                Reference Number
+              </p>
+              <p className="font-mono text-lg font-bold text-primary">
+                {reference}
+              </p>
+              <p className="mt-1 text-xs text-body-color dark:text-body-color-dark">
+                Keep this reference number for your records
+              </p>
+            </div>
+          )}
+
           <div className="mb-6 rounded-lg bg-blue-50 p-4 dark:bg-blue-900/20">
             <p className="text-sm text-blue-800 dark:text-blue-300">
               <strong>Processing Time:</strong> {getProcessingInfo()}
             </p>
           </div>
 
-          {method === "bank" && (
+          {(method === "bank" || method === "crypto") && (
             <>
               {/* Request Summary */}
               <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4 text-left dark:border-gray-800 dark:bg-black/20">
@@ -98,22 +129,38 @@ function SuccessPageContent() {
                       ${amount ? parseFloat(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}
                     </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Email:</span>
-                    <span className="font-semibold text-black dark:text-white">
-                      {email || "N/A"}
-                    </span>
-                  </div>
+                  {reference && (
+                    <div className="flex justify-between">
+                      <span>Reference Number:</span>
+                      <span className="font-mono font-semibold text-primary">
+                        {reference}
+                      </span>
+                    </div>
+                  )}
+                  {manual && email && (
+                    <div className="flex justify-between">
+                      <span>Email:</span>
+                      <span className="font-semibold text-black dark:text-white">
+                        {email}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span>Payment Method:</span>
                     <span className="font-semibold text-black dark:text-white">
-                      Bank Transfer
+                      {method === "bank" ? "Bank Transfer" : `${crypto || "Cryptocurrency"}`}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Processing Type:</span>
+                    <span className="font-semibold text-black dark:text-white">
+                      {manual ? "Manual Processing" : "Automated"}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span>Status:</span>
                     <span className="font-semibold text-yellow-600 dark:text-yellow-400">
-                      Pending Transfer
+                      Pending
                     </span>
                   </div>
                 </div>
@@ -127,12 +174,30 @@ function SuccessPageContent() {
                   </svg>
                   Next Steps:
                 </h3>
-                <ol className="list-decimal space-y-2 pl-5 text-sm text-green-700 dark:text-green-400">
-                  <li>Check your email ({email}) for the invoice with bank account details</li>
-                  <li>Transfer exactly ${amount ? parseFloat(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"} to the bank account in the invoice</li>
-                  <li>Include your reference number from the email in the transfer description</li>
-                  <li>Wait 1-3 business days for funds to be credited</li>
-                </ol>
+                {manual ? (
+                  <ol className="list-decimal space-y-2 pl-5 text-sm text-green-700 dark:text-green-400">
+                    <li>Check your email ({email}) for payment details</li>
+                    <li>{method === "bank" ? `Transfer exactly $${amount ? parseFloat(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"} to the provided bank account` : `Send ${crypto || "cryptocurrency"} to the provided wallet address`}</li>
+                    <li>Include your reference number ({reference}) in the transfer</li>
+                    <li>Our team will verify and credit your account</li>
+                  </ol>
+                ) : (
+                  <ol className="list-decimal space-y-2 pl-5 text-sm text-green-700 dark:text-green-400">
+                    {method === "bank" ? (
+                      <>
+                        <li>Transfer exactly ${amount ? parseFloat(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"} to the bank account details shown earlier</li>
+                        <li>Include your reference number ({reference}) in the transfer description</li>
+                        <li>Wait 1-3 business days for funds to be credited</li>
+                      </>
+                    ) : (
+                      <>
+                        <li>Send {crypto || "cryptocurrency"} to the wallet address shown earlier</li>
+                        <li>Wait for network confirmations (10-30 minutes)</li>
+                        <li>You'll receive a notification once the deposit is confirmed</li>
+                      </>
+                    )}
+                  </ol>
+                )}
               </div>
             </>
           )}

@@ -4,7 +4,9 @@ import { success, error } from "../utils/response.js";
 
 export async function getSessions(req: Request, res: Response) {
   try {
-    const currentToken = req.body.refreshToken as string | undefined;
+    // For GET requests, read token from query or header instead of body
+    const currentToken = (req.query.refreshToken as string) ||
+                         req.headers['x-refresh-token'] as string;
 
     const sessions = await prisma.session.findMany({
       where: {
@@ -22,9 +24,11 @@ export async function getSessions(req: Request, res: Response) {
       orderBy: { lastActive: "desc" },
     });
 
-    const result = sessions.map(({ token, ...session }) => ({
+    // Map sessions and mark current one
+    // If no token provided, mark the most recent as current (first in list)
+    const result = sessions.map(({ token, ...session }, index) => ({
       ...session,
-      current: currentToken ? token === currentToken : false,
+      current: currentToken ? token === currentToken : index === 0,
     }));
 
     return success(res, result);
@@ -37,7 +41,10 @@ export async function getSessions(req: Request, res: Response) {
 export async function revokeSession(req: Request, res: Response) {
   try {
     const { id } = req.params;
-    const { refreshToken: currentToken } = req.body;
+    // RefreshToken is optional - can be in body, query, or header
+    const currentToken = req.body?.refreshToken ||
+                         req.query?.refreshToken as string ||
+                         req.headers['x-refresh-token'] as string;
 
     const session = await prisma.session.findUnique({
       where: { id },

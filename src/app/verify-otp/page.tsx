@@ -4,14 +4,18 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import axios from "axios";
+import Toast from "@/components/Toast";
 
 function VerifyOTPContent() {
   const [otp, setOtp] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email");
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,7 +31,7 @@ function VerifyOTPContent() {
     try {
       // Call backend verify-otp API using axios
       const response = await axios.post(
-        "http://localhost:4000/api/auth/verify-otp",
+        `${API_URL}/api/auth/verify-otp`,
         {
           email,
           code: otp,
@@ -35,9 +39,8 @@ function VerifyOTPContent() {
       );
 
       if (response.data.success) {
-        // Success - redirect to sign in
-        alert("Email verified successfully! You can now sign in.");
-        router.push("/signin?verified=true");
+        setToast({ message: "Email verified successfully! You can now sign in.", type: "success" });
+        setTimeout(() => router.push("/signin?verified=true"), 1500);
       } else {
         setError("Verification failed. Please try again.");
         setIsLoading(false);
@@ -51,12 +54,41 @@ function VerifyOTPContent() {
     }
   };
 
-  const handleResend = () => {
-    // Add your resend OTP logic here
-    alert("OTP code has been resent to your email");
+  const handleResend = async () => {
+    if (!email) {
+      setError("Email is missing. Cannot resend OTP.");
+      return;
+    }
+
+    try {
+      const response = await axios.post(
+        `${API_URL}/api/auth/resend-otp`,
+        { email }
+      );
+
+      if (response.data.success) {
+        setToast({ message: "A new verification code has been sent to your email.", type: "success" });
+        setError("");
+      } else {
+        setError("Failed to resend verification code. Please try again.");
+      }
+    } catch (error: any) {
+      console.error("Resend OTP error:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to resend verification code.";
+      setError(errorMessage);
+    }
   };
 
   return (
+    <>
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     <section className="relative z-10 overflow-hidden pb-16 pt-36 md:pb-20 lg:pb-28 lg:pt-[180px]">
       <div className="container">
         <div className="-mx-4 flex flex-wrap">
@@ -177,6 +209,7 @@ function VerifyOTPContent() {
         </svg>
       </div>
     </section>
+    </>
   );
 }
 

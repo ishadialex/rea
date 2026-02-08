@@ -16,9 +16,10 @@ const ProfileDropdown = () => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const [userName, setUserName] = useState("User");
+  const [userName, setUserName] = useState("");
   const [userEmail, setUserEmail] = useState("");
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
 
   // Fetch user data on mount
   useEffect(() => {
@@ -36,6 +37,8 @@ const ProfileDropdown = () => {
         // Fallback to localStorage if API fails
         const storedEmail = localStorage.getItem("userEmail");
         if (storedEmail) setUserEmail(storedEmail);
+      } finally {
+        setLoadingProfile(false);
       }
     };
 
@@ -94,7 +97,9 @@ const ProfileDropdown = () => {
       >
         {/* Avatar */}
         <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-primary text-white">
-          {getImageUrl(profilePhoto) ? (
+          {loadingProfile ? (
+            <div className="h-10 w-10 animate-pulse rounded-full bg-primary/50" />
+          ) : getImageUrl(profilePhoto) ? (
             <Image
               src={getImageUrl(profilePhoto)!}
               alt={userName}
@@ -111,9 +116,13 @@ const ProfileDropdown = () => {
         </div>
 
         {/* Name - Hidden on mobile */}
-        <span className="hidden text-sm font-medium text-black dark:text-white lg:block">
-          {userName.split(" ")[0]}
-        </span>
+        {loadingProfile ? (
+          <div className="hidden h-4 w-16 animate-pulse rounded bg-gray-200 dark:bg-gray-700 lg:block" />
+        ) : (
+          <span className="hidden text-sm font-medium text-black dark:text-white lg:block">
+            {userName.split(" ")[0]}
+          </span>
+        )}
 
         {/* Dropdown Icon */}
         <svg

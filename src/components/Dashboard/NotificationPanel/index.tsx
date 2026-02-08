@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { io, Socket } from "socket.io-client";
+import { api } from "@/lib/api";
 
-// Types
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+
 interface Notification {
   id: string;
-  type: "info" | "success" | "warning" | "error" | "transaction" | "investment" | "security" | "referral";
+  type: "info" | "success" | "warning" | "error" | "transaction" | "investment" | "security" | "referral" | "support";
   title: string;
   message: string;
   timestamp: string;
@@ -13,139 +16,43 @@ interface Notification {
   link?: string;
 }
 
-// Mock API functions - Replace these with actual API calls
-const fetchNotifications = async (): Promise<Notification[]> => {
-  await new Promise((resolve) => setTimeout(resolve, 800));
-  // In real app: const response = await fetch('/api/notifications');
-  return [
-    {
-      id: "notif-001",
-      type: "investment",
-      title: "Investment Confirmed",
-      message: "Your investment of $5,000 in Downtown Office Complex has been confirmed.",
-      timestamp: "2026-02-06T10:30:00Z",
-      read: false,
-    },
-    {
-      id: "notif-002",
-      type: "transaction",
-      title: "Withdrawal Processed",
-      message: "Your withdrawal of $1,200 has been processed successfully.",
-      timestamp: "2026-02-05T14:22:00Z",
-      read: false,
-    },
-    {
-      id: "notif-003",
-      type: "security",
-      title: "New Login Detected",
-      message: "A new login was detected from Chrome on Windows.",
-      timestamp: "2026-02-05T09:15:00Z",
-      read: true,
-    },
-    {
-      id: "notif-004",
-      type: "referral",
-      title: "Referral Bonus Earned",
-      message: "You earned $50 from John Smith's first investment.",
-      timestamp: "2026-02-04T16:45:00Z",
-      read: true,
-    },
-  ];
-};
-
-const markNotificationAsRead = async (notificationId: string): Promise<boolean> => {
-  await new Promise((resolve) => setTimeout(resolve, 300));
-  // In real app: await fetch(`/api/notifications/${notificationId}/read`, { method: 'PATCH' });
-  return true;
-};
-
-const markAllAsRead = async (): Promise<boolean> => {
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  // In real app: await fetch('/api/notifications/read-all', { method: 'PATCH' });
-  return true;
-};
-
-const clearAllNotifications = async (): Promise<boolean> => {
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  // In real app: await fetch('/api/notifications', { method: 'DELETE' });
-  return true;
-};
-
-// Notification Icon Component
 const NotificationIcon = ({ type }: { type: Notification["type"] }) => {
   const iconClasses = "h-4 w-4 md:h-5 md:w-5";
 
   const getIconBgColor = () => {
     switch (type) {
-      case "success":
-        return "bg-green-500";
-      case "warning":
-        return "bg-yellow-500";
-      case "error":
-        return "bg-red-500";
-      case "transaction":
-        return "bg-blue-500";
-      case "investment":
-        return "bg-primary";
-      case "security":
-        return "bg-purple-500";
-      case "referral":
-        return "bg-orange-500";
-      default:
-        return "bg-gray-500";
+      case "success": return "bg-green-500";
+      case "warning": return "bg-yellow-500";
+      case "error": return "bg-red-500";
+      case "transaction": return "bg-blue-500";
+      case "investment": return "bg-primary";
+      case "security": return "bg-purple-500";
+      case "referral": return "bg-orange-500";
+      case "support": return "bg-teal-500";
+      default: return "bg-gray-500";
     }
   };
 
   const renderIcon = () => {
     switch (type) {
       case "success":
-        return (
-          <svg className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
-        );
+        return <svg className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>;
       case "warning":
-        return (
-          <svg className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-        );
+        return <svg className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>;
       case "error":
-        return (
-          <svg className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        );
+        return <svg className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>;
       case "transaction":
-        return (
-          <svg className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-          </svg>
-        );
+        return <svg className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>;
       case "investment":
-        return (
-          <svg className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-          </svg>
-        );
+        return <svg className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>;
       case "security":
-        return (
-          <svg className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-          </svg>
-        );
+        return <svg className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>;
       case "referral":
-        return (
-          <svg className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-          </svg>
-        );
+        return <svg className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>;
+      case "support":
+        return <svg className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" /></svg>;
       default:
-        return (
-          <svg className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-          </svg>
-        );
+        return <svg className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>;
     }
   };
 
@@ -156,7 +63,6 @@ const NotificationIcon = ({ type }: { type: Notification["type"] }) => {
   );
 };
 
-// Skeleton Components
 const NotificationSkeleton = () => (
   <div className="flex gap-3 px-4 py-3 md:gap-4 md:px-6 md:py-4">
     <div className="h-8 w-8 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700 md:h-10 md:w-10" />
@@ -171,16 +77,15 @@ const NotificationSkeleton = () => (
 const NotificationPanel = () => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const socketRef = useRef<Socket | null>(null);
 
-  // Data states
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  // Format timestamp to relative time
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -201,88 +106,113 @@ const NotificationPanel = () => {
     });
   };
 
-  // Fetch notifications
+  const mapNotification = (n: any): Notification => ({
+    id: n.id,
+    type: n.type as Notification["type"],
+    title: n.title,
+    message: n.message,
+    timestamp: n.createdAt || n.timestamp,
+    read: n.isRead ?? n.read ?? false,
+    link: n.link,
+  });
+
   const loadNotifications = useCallback(async () => {
     try {
       setLoading(true);
-      setError(null);
-      const data = await fetchNotifications();
-      setNotifications(data);
-    } catch (err) {
-      setError("Failed to load notifications");
+      setErrorMsg(null);
+      const result = await api.getNotifications();
+      if (result.success && result.data) {
+        setNotifications(result.data.map(mapNotification));
+      }
+    } catch {
+      setErrorMsg("Failed to load notifications");
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Initial load
+  // Connect Socket.io for real-time push notifications
+  useEffect(() => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+    if (!token) return;
+
+    const socket = io(API_URL, {
+      auth: { token },
+      reconnectionAttempts: 5,
+      reconnectionDelay: 2000,
+    });
+
+    socketRef.current = socket;
+
+    socket.on("notification", (data: any) => {
+      setNotifications((prev) => [mapNotification(data), ...prev]);
+    });
+
+    socket.on("connect_error", () => {
+      // Silent — socket is an optional enhancement
+    });
+
+    return () => {
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     loadNotifications();
   }, [loadNotifications]);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Handle marking single notification as read
   const handleNotificationClick = async (notification: Notification) => {
     if (!notification.read) {
       try {
-        await markNotificationAsRead(notification.id);
+        await api.markNotificationAsRead(notification.id);
         setNotifications((prev) =>
           prev.map((n) => (n.id === notification.id ? { ...n, read: true } : n))
         );
-      } catch (err) {
-        console.error("Failed to mark notification as read");
+      } catch {
+        // ignore
       }
     }
-
-    // Navigate to link if provided
     if (notification.link) {
       window.location.href = notification.link;
     }
   };
 
-  // Handle mark all as read
   const handleMarkAllRead = async () => {
     if (unreadCount === 0) return;
-
     try {
       setActionLoading(true);
-      await markAllAsRead();
+      await api.markAllNotificationsRead();
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    } catch (err) {
-      console.error("Failed to mark all as read");
+    } catch {
+      // ignore
     } finally {
       setActionLoading(false);
     }
   };
 
-  // Handle clear all
   const handleClearAll = async () => {
     try {
       setActionLoading(true);
-      await clearAllNotifications();
+      await api.clearAllNotifications();
       setNotifications([]);
       setIsOpen(false);
-    } catch (err) {
-      console.error("Failed to clear notifications");
+    } catch {
+      // ignore
     } finally {
       setActionLoading(false);
     }
-  };
-
-  // Handle refresh
-  const handleRefresh = async () => {
-    await loadNotifications();
   };
 
   return (
@@ -293,7 +223,6 @@ const NotificationPanel = () => {
         className="relative flex h-10 w-10 items-center justify-center rounded-lg transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 md:h-14 md:w-14"
         aria-label="Notifications"
       >
-        {/* Bell Icon */}
         <svg
           className="h-5 w-5 text-black dark:text-white md:h-6 md:w-6"
           fill="none"
@@ -307,8 +236,6 @@ const NotificationPanel = () => {
             d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
           />
         </svg>
-
-        {/* Notification Badge */}
         {unreadCount > 0 && (
           <span className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-semibold text-white md:h-5 md:w-5 md:text-xs">
             {unreadCount > 9 ? "9+" : unreadCount}
@@ -332,28 +259,16 @@ const NotificationPanel = () => {
               )}
             </div>
             <div className="flex items-center gap-2">
-              {/* Refresh Button */}
               <button
-                onClick={handleRefresh}
+                onClick={loadNotifications}
                 disabled={loading}
                 className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
                 aria-label="Refresh notifications"
               >
-                <svg
-                  className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                  />
+                <svg className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
               </button>
-              {/* Mark All Read Button */}
               {unreadCount > 0 && (
                 <button
                   onClick={handleMarkAllRead}
@@ -377,49 +292,22 @@ const NotificationPanel = () => {
                 <NotificationSkeleton />
                 <NotificationSkeleton />
               </>
-            ) : error ? (
+            ) : errorMsg ? (
               <div className="px-4 py-6 text-center md:px-6 md:py-8">
-                <svg
-                  className="mx-auto mb-3 h-10 w-10 text-red-400 md:h-12 md:w-12"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                  />
+                <svg className="mx-auto mb-3 h-10 w-10 text-red-400 md:h-12 md:w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
-                <p className="mb-2 text-xs font-medium text-black dark:text-white md:text-sm">
-                  {error}
-                </p>
-                <button
-                  onClick={handleRefresh}
-                  className="text-xs text-primary hover:underline md:text-sm"
-                >
+                <p className="mb-2 text-xs font-medium text-black dark:text-white md:text-sm">{errorMsg}</p>
+                <button onClick={loadNotifications} className="text-xs text-primary hover:underline md:text-sm">
                   Try again
                 </button>
               </div>
             ) : notifications.length === 0 ? (
               <div className="px-4 py-6 text-center md:px-6 md:py-8">
-                <svg
-                  className="mx-auto mb-3 h-10 w-10 text-gray-400 md:h-12 md:w-12"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
-                  />
+                <svg className="mx-auto mb-3 h-10 w-10 text-gray-400 md:h-12 md:w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                 </svg>
-                <p className="text-xs text-body-color dark:text-body-color-dark md:text-sm">
-                  No notifications yet
-                </p>
+                <p className="text-xs text-body-color dark:text-body-color-dark md:text-sm">No notifications yet</p>
               </div>
             ) : (
               <div className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -431,12 +319,9 @@ const NotificationPanel = () => {
                       !notification.read ? "bg-primary/5 dark:bg-primary/10" : ""
                     }`}
                   >
-                    {/* Icon */}
                     <div className="flex-shrink-0">
                       <NotificationIcon type={notification.type} />
                     </div>
-
-                    {/* Content */}
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-semibold text-black dark:text-white md:text-sm">
                         {notification.title}
@@ -448,8 +333,6 @@ const NotificationPanel = () => {
                         {formatTimestamp(notification.timestamp)}
                       </p>
                     </div>
-
-                    {/* Unread Indicator */}
                     {!notification.read && (
                       <div className="flex-shrink-0">
                         <div className="h-2 w-2 rounded-full bg-primary"></div>

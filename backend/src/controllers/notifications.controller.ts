@@ -56,3 +56,17 @@ export async function markAllAsRead(req: Request, res: Response) {
     return error(res, "Failed to update notifications", 500);
   }
 }
+
+export async function clearAllNotifications(req: Request, res: Response) {
+  try {
+    const userId = req.userId!;
+
+    const result = await prisma.notification.deleteMany({
+      where: { userId },
+    });
+
+    return success(res, { count: result.count }, "All notifications cleared");
+  } catch (err) {
+    return error(res, "Failed to clear notifications", 500);
+  }
+}

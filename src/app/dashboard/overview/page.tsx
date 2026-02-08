@@ -13,6 +13,16 @@ interface UserData {
   twoFactorEnabled: boolean;
 }
 
+interface BalanceSummary {
+  balance: number;
+  deposits: number;
+  profits: number;
+  adminBonuses: number;
+  referralBonuses: number;
+  withdrawals: number;
+  investedFunds: number;
+}
+
 interface Investment {
   id: string;
   propertyTitle: string;
@@ -44,10 +54,31 @@ interface FeaturedProperty {
 
 interface DashboardData {
   user: UserData | null;
+  balanceSummary: BalanceSummary | null;
   investments: Investment[];
   transactions: Transaction[];
   featuredProperties: FeaturedProperty[];
 }
+
+const fetchBalanceSummary = async (): Promise<BalanceSummary> => {
+  try {
+    const result = await api.getBalanceSummary();
+    if (result.success && result.data) {
+      return {
+        balance: result.data.balance,
+        deposits: result.data.breakdown.deposits,
+        profits: result.data.breakdown.profits,
+        adminBonuses: result.data.breakdown.adminBonuses,
+        referralBonuses: result.data.breakdown.referralBonuses,
+        withdrawals: result.data.breakdown.withdrawals,
+        investedFunds: result.data.breakdown.investedFunds,
+      };
+    }
+  } catch {
+    // ignore
+  }
+  return { balance: 0, deposits: 0, profits: 0, adminBonuses: 0, referralBonuses: 0, withdrawals: 0, investedFunds: 0 };
+};
 
 // Mock API functions - Replace these with actual API calls
 const fetchUserData = async (): Promise<UserData> => {
@@ -224,41 +255,48 @@ export default function DashboardOverviewPage() {
   // State
   const [data, setData] = useState<DashboardData>({
     user: null,
+    balanceSummary: null,
     investments: [],
     transactions: [],
     featuredProperties: [],
   });
   const [loading, setLoading] = useState({
     user: true,
+    balance: true,
     investments: true,
     transactions: true,
     properties: true,
   });
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch all dashboard data
-  const fetchDashboardData = useCallback(async () => {
-    try {
-      setError(null);
+  // Fetch all dashboard data — each piece updates state as soon as it arrives
+  const fetchDashboardData = useCallback(() => {
+    setError(null);
 
-      // Fetch all data in parallel
-      const [userData, investmentsData, transactionsData, propertiesData] = await Promise.all([
-        fetchUserData().finally(() => setLoading((prev) => ({ ...prev, user: false }))),
-        fetchInvestments().finally(() => setLoading((prev) => ({ ...prev, investments: false }))),
-        fetchTransactions().finally(() => setLoading((prev) => ({ ...prev, transactions: false }))),
-        fetchFeaturedProperties().finally(() => setLoading((prev) => ({ ...prev, properties: false }))),
-      ]);
+    fetchUserData()
+      .then((userData) => setData((prev) => ({ ...prev, user: userData })))
+      .catch(() => {})
+      .finally(() => setLoading((prev) => ({ ...prev, user: false })));
 
-      setData({
-        user: userData,
-        investments: investmentsData,
-        transactions: transactionsData,
-        featuredProperties: propertiesData,
-      });
-    } catch (err) {
-      setError("Failed to load dashboard data. Please try again.");
-      console.error("Dashboard fetch error:", err);
-    }
+    fetchBalanceSummary()
+      .then((balanceData) => setData((prev) => ({ ...prev, balanceSummary: balanceData })))
+      .catch(() => {})
+      .finally(() => setLoading((prev) => ({ ...prev, balance: false })));
+
+    fetchInvestments()
+      .then((investmentsData) => setData((prev) => ({ ...prev, investments: investmentsData })))
+      .catch(() => {})
+      .finally(() => setLoading((prev) => ({ ...prev, investments: false })));
+
+    fetchTransactions()
+      .then((transactionsData) => setData((prev) => ({ ...prev, transactions: transactionsData })))
+      .catch(() => {})
+      .finally(() => setLoading((prev) => ({ ...prev, transactions: false })));
+
+    fetchFeaturedProperties()
+      .then((propertiesData) => setData((prev) => ({ ...prev, featuredProperties: propertiesData })))
+      .catch(() => {})
+      .finally(() => setLoading((prev) => ({ ...prev, properties: false })));
   }, []);
 
   // Initial data fetch
@@ -275,14 +313,14 @@ export default function DashboardOverviewPage() {
     const totalROI = totalInvested > 0 ? ((totalExpectedReturns / totalInvested) * 100).toFixed(1) : "0";
 
     return {
-      accountBalance: data.user?.accountBalance || 0,
+      accountBalance: data.balanceSummary?.balance ?? data.user?.accountBalance ?? 0,
       totalInvested,
       totalExpectedReturns,
       monthlyIncome,
       activeCount,
       totalROI,
     };
-  }, [data.investments, data.user]);
+  }, [data.investments, data.user, data.balanceSummary]);
 
   // Transaction icon helper
   const getTransactionIcon = useCallback((type: string) => {
@@ -334,6 +372,7 @@ export default function DashboardOverviewPage() {
   const handleRefresh = () => {
     setLoading({
       user: true,
+      balance: true,
       investments: true,
       transactions: true,
       properties: true,
@@ -384,13 +423,13 @@ export default function DashboardOverviewPage() {
         </div>
         <button
           onClick={handleRefresh}
-          disabled={loading.user || loading.investments || loading.transactions || loading.properties}
+          disabled={loading.user || loading.balance || loading.investments || loading.transactions || loading.properties}
           className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:hover:bg-gray-800"
           title="Refresh data"
         >
           <svg
             className={`h-5 w-5 text-gray-600 dark:text-gray-400 ${
-              loading.user || loading.investments || loading.transactions || loading.properties ? "animate-spin" : ""
+              loading.user || loading.balance || loading.investments || loading.transactions || loading.properties ? "animate-spin" : ""
             }`}
             fill="none"
             viewBox="0 0 24 24"
@@ -403,7 +442,7 @@ export default function DashboardOverviewPage() {
 
       {/* Main Stats Cards */}
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 md:mb-8">
-        {loading.user || loading.investments ? (
+        {loading.user || loading.balance || loading.investments ? (
           <>
             <StatCardSkeleton />
             <StatCardSkeleton />
@@ -674,26 +713,44 @@ export default function DashboardOverviewPage() {
                     <div className={`flex h-8 w-8 items-center justify-center rounded-full ${
                       data.user?.kycStatus === "verified"
                         ? "bg-green-100 dark:bg-green-900/30"
-                        : "bg-yellow-100 dark:bg-yellow-900/30"
+                        : data.user?.kycStatus === "rejected"
+                          ? "bg-red-100 dark:bg-red-900/30"
+                          : data.user?.kycStatus === "pending"
+                            ? "bg-yellow-100 dark:bg-yellow-900/30"
+                            : "bg-gray-100 dark:bg-gray-700"
                     }`}>
                       {data.user?.kycStatus === "verified" ? (
                         <svg className="h-4 w-4 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
-                      ) : (
+                      ) : data.user?.kycStatus === "rejected" ? (
+                        <svg className="h-4 w-4 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      ) : data.user?.kycStatus === "pending" ? (
                         <svg className="h-4 w-4 text-yellow-600 dark:text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      ) : (
+                        <svg className="h-4 w-4 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                       )}
                     </div>
                     <span className="text-sm text-black dark:text-white">KYC Verification</span>
                   </div>
-                  <span className={`text-xs font-semibold ${
+                  <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${
                     data.user?.kycStatus === "verified"
-                      ? "text-green-600 dark:text-green-400"
-                      : "text-yellow-600 dark:text-yellow-400"
+                      ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                      : data.user?.kycStatus === "rejected"
+                        ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+                        : data.user?.kycStatus === "pending"
+                          ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+                          : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
                   }`}>
-                    {data.user?.kycStatus === "verified" ? "Verified" : "Pending"}
+                    {data.user?.kycStatus
+                      ? data.user.kycStatus.charAt(0).toUpperCase() + data.user.kycStatus.slice(1)
+                      : "Not Started"}
                   </span>
                 </div>
 
@@ -703,18 +760,24 @@ export default function DashboardOverviewPage() {
                     <div className={`flex h-8 w-8 items-center justify-center rounded-full ${
                       data.user?.twoFactorEnabled
                         ? "bg-green-100 dark:bg-green-900/30"
-                        : "bg-red-100 dark:bg-red-900/30"
+                        : "bg-gray-100 dark:bg-gray-700"
                     }`}>
-                      <svg className={`h-4 w-4 ${data.user?.twoFactorEnabled ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                      </svg>
+                      {data.user?.twoFactorEnabled ? (
+                        <svg className="h-4 w-4 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                      ) : (
+                        <svg className="h-4 w-4 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                      )}
                     </div>
                     <span className="text-sm text-black dark:text-white">2FA Security</span>
                   </div>
-                  <span className={`text-xs font-semibold ${
+                  <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${
                     data.user?.twoFactorEnabled
-                      ? "text-green-600 dark:text-green-400"
-                      : "text-red-600 dark:text-red-400"
+                      ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                      : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
                   }`}>
                     {data.user?.twoFactorEnabled ? "Enabled" : "Disabled"}
                   </span>

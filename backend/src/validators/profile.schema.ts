@@ -26,5 +26,5 @@ export const updateSettingsSchema = z.object({
   pushNotifications: z.boolean().optional(),
   marketingEmails: z.boolean().optional(),
   loginAlerts: z.boolean().optional(),
-  sessionTimeout: z.number().int().min(5).max(480).optional(),
+  sessionTimeout: z.number().int().min(0).max(480).optional(), // 0 = never, 2+ = minutes
 });

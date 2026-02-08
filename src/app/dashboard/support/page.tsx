@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { ApiResponse } from "@/types/user";
+import { useRouter, useSearchParams } from "next/navigation";
+import { api } from "@/lib/api";
 
 interface FileAttachment {
   id: string;
@@ -22,6 +23,7 @@ interface SupportTicket {
   attachments?: FileAttachment[];
   createdAt: string;
   updatedAt: string;
+  replyCount?: number;
   replies: TicketReply[];
 }
 
@@ -42,10 +44,36 @@ interface CreateTicketForm {
 }
 
 export default function SupportPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"tickets" | "new">("tickets");
+  const initialTab = searchParams.get("tab") === "new" ? "new" : "tickets";
+  const [activeTab, setActiveTab] = useState<"tickets" | "new">(initialTab);
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
+  const [isLoadingTicket, setIsLoadingTicket] = useState(false);
+
+  const handleTabChange = (tab: "tickets" | "new") => {
+    setActiveTab(tab);
+    setSelectedTicket(null);
+    router.replace(`?tab=${tab}`, { scroll: false });
+  };
+
+  const handleSelectTicket = async (ticket: SupportTicket) => {
+    setIsLoadingTicket(true);
+    router.replace(`?tab=tickets&ticket=${ticket.id}`, { scroll: false });
+    try {
+      const result = await api.getSupportTicket(ticket.id);
+      if (result.success && result.data) {
+        setSelectedTicket(result.data);
+      }
+    } catch (err: any) {
+      showNotification(err?.response?.data?.message || "Failed to load ticket", "error");
+    } finally {
+      setIsLoadingTicket(false);
+    }
+  };
+
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -86,13 +114,12 @@ export default function SupportPage() {
 
   const fetchTickets = async () => {
     try {
-      const response = await fetch("/api/support");
-      const result: ApiResponse<SupportTicket[]> = await response.json();
+      const result = await api.getSupportTickets();
       if (result.success && result.data) {
         setTickets(result.data);
       }
-    } catch (error) {
-      console.error("Failed to fetch tickets:", error);
+    } catch (err) {
+      console.error("Failed to fetch tickets:", err);
     } finally {
       setIsLoading(false);
     }
@@ -118,25 +145,15 @@ export default function SupportPage() {
     setIsUploading: React.Dispatch<React.SetStateAction<boolean>>
   ) => {
     setIsUploading(true);
-
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await fetch("/api/support/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      const result: ApiResponse<FileAttachment> = await response.json();
-
+      const result = await api.uploadSupportAttachment(file);
       if (result.success && result.data) {
         setAttachments((prev) => [...prev, result.data!]);
       } else {
         showNotification(result.message || "Failed to upload file", "error");
       }
-    } catch (error) {
-      showNotification("An error occurred while uploading", "error");
+    } catch (err: any) {
+      showNotification(err?.response?.data?.message || "Failed to upload file", "error");
     } finally {
       setIsUploading(false);
     }
@@ -227,28 +244,22 @@ export default function SupportPage() {
     setFormErrors({});
 
     try {
-      const response = await fetch("/api/support", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...newTicket,
-          attachments: ticketAttachments,
-        }),
+      const result = await api.createSupportTicket({
+        ...newTicket,
+        attachmentIds: ticketAttachments.map((a) => a.id),
       });
-
-      const result: ApiResponse<SupportTicket> = await response.json();
 
       if (result.success && result.data) {
         setTickets([result.data, ...tickets]);
         setNewTicket({ subject: "", category: "", priority: "medium", message: "" });
         setTicketAttachments([]);
-        setActiveTab("tickets");
+        handleTabChange("tickets");
         showNotification("Support ticket created successfully!", "success");
       } else {
         showNotification(result.message || "Failed to create ticket", "error");
       }
-    } catch (error) {
-      showNotification("An error occurred. Please try again.", "error");
+    } catch (err: any) {
+      showNotification(err?.response?.data?.message || "An error occurred. Please try again.", "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -260,16 +271,10 @@ export default function SupportPage() {
     setIsSendingReply(true);
 
     try {
-      const response = await fetch(`/api/support/${selectedTicket.id}/reply`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: replyMessage,
-          attachments: replyAttachments,
-        }),
+      const result = await api.replySupportTicket(selectedTicket.id, {
+        message: replyMessage,
+        attachmentIds: replyAttachments.map((a) => a.id),
       });
-
-      const result: ApiResponse<TicketReply> = await response.json();
 
       if (result.success && result.data) {
         const updatedTicket = {
@@ -277,14 +282,14 @@ export default function SupportPage() {
           replies: [...selectedTicket.replies, result.data],
         };
         setSelectedTicket(updatedTicket);
-        setTickets(tickets.map((t) => (t.id === selectedTicket.id ? updatedTicket : t)));
+        setTickets(tickets.map((t) => (t.id === selectedTicket.id ? { ...t, replyCount: (t.replyCount || 0) + 1 } : t)));
         setReplyMessage("");
         setReplyAttachments([]);
       } else {
         showNotification("Failed to send reply", "error");
       }
-    } catch (error) {
-      showNotification("An error occurred. Please try again.", "error");
+    } catch (err: any) {
+      showNotification(err?.response?.data?.message || "An error occurred. Please try again.", "error");
     } finally {
       setIsSendingReply(false);
     }
@@ -340,8 +345,15 @@ export default function SupportPage() {
     { value: "other", label: "Other" },
   ];
 
-  // File attachment display component
-  const AttachmentList = ({ attachments, canRemove = false, onRemove }: { attachments?: FileAttachment[]; canRemove?: boolean; onRemove?: (id: string) => void }) => {
+  const AttachmentList = ({
+    attachments,
+    canRemove = false,
+    onRemove,
+  }: {
+    attachments?: FileAttachment[];
+    canRemove?: boolean;
+    onRemove?: (id: string) => void;
+  }) => {
     if (!attachments || attachments.length === 0) return null;
 
     return (
@@ -397,7 +409,18 @@ export default function SupportPage() {
   }
 
   // Ticket Detail View
-  if (selectedTicket) {
+  if (selectedTicket || isLoadingTicket) {
+    if (isLoadingTicket) {
+      return (
+        <div className="flex min-h-[400px] items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+            <p className="text-body-color dark:text-body-color-dark">Loading ticket...</p>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="mx-auto max-w-4xl">
         {/* Notifications */}
@@ -418,7 +441,7 @@ export default function SupportPage() {
         {/* Back Button */}
         <button
           onClick={() => {
-            setSelectedTicket(null);
+            handleTabChange("tickets");
             setReplyAttachments([]);
           }}
           className="mb-4 flex items-center gap-2 text-sm font-medium text-body-color hover:text-primary dark:text-body-color-dark"
@@ -434,24 +457,29 @@ export default function SupportPage() {
           <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <h1 className="mb-2 text-lg font-bold text-black dark:text-white sm:text-xl">
-                {selectedTicket.subject}
+                {selectedTicket!.subject}
               </h1>
               <p className="text-xs text-body-color dark:text-body-color-dark sm:text-sm">
-                Ticket #{selectedTicket.id} • Created {formatDate(selectedTicket.createdAt)}
+                Ticket #{selectedTicket!.id} • Created {formatDate(selectedTicket!.createdAt)}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <span className={`rounded-full px-3 py-1 text-xs font-medium ${getStatusColor(selectedTicket.status)}`}>
-                {selectedTicket.status.replace("_", " ")}
+              <span className={`rounded-full px-3 py-1 text-xs font-medium ${getStatusColor(selectedTicket!.status)}`}>
+                {selectedTicket!.status.replace("_", " ")}
               </span>
-              <span className={`rounded-full px-3 py-1 text-xs font-medium ${getPriorityColor(selectedTicket.priority)}`}>
-                {selectedTicket.priority}
+              <span className={`rounded-full px-3 py-1 text-xs font-medium ${getPriorityColor(selectedTicket!.priority)}`}>
+                {selectedTicket!.priority}
               </span>
             </div>
           </div>
 
           <div className="flex flex-wrap gap-4 text-xs text-body-color dark:text-body-color-dark sm:text-sm">
-            <span>Category: <strong className="text-black dark:text-white">{categories.find((c) => c.value === selectedTicket.category)?.label || selectedTicket.category}</strong></span>
+            <span>
+              Category:{" "}
+              <strong className="text-black dark:text-white">
+                {categories.find((c) => c.value === selectedTicket!.category)?.label || selectedTicket!.category}
+              </strong>
+            </span>
           </div>
         </div>
 
@@ -467,24 +495,22 @@ export default function SupportPage() {
                 <div>
                   <p className="text-sm font-medium text-black dark:text-white">You</p>
                   <p className="text-xs text-body-color dark:text-body-color-dark">
-                    {formatDate(selectedTicket.createdAt)}
+                    {formatDate(selectedTicket!.createdAt)}
                   </p>
                 </div>
               </div>
               <p className="whitespace-pre-wrap text-sm text-black dark:text-white">
-                {selectedTicket.message}
+                {selectedTicket!.message}
               </p>
-              <AttachmentList attachments={selectedTicket.attachments} />
+              <AttachmentList attachments={selectedTicket!.attachments} />
             </div>
 
             {/* Replies */}
-            {selectedTicket.replies.map((reply) => (
+            {selectedTicket!.replies.map((reply) => (
               <div
                 key={reply.id}
                 className={`mb-4 rounded-lg p-4 ${
-                  reply.isStaff
-                    ? "bg-primary/5 dark:bg-primary/10"
-                    : "bg-gray-50 dark:bg-black/20"
+                  reply.isStaff ? "bg-primary/5 dark:bg-primary/10" : "bg-gray-50 dark:bg-black/20"
                 }`}
               >
                 <div className="mb-2 flex items-center gap-2">
@@ -509,9 +535,7 @@ export default function SupportPage() {
                     </p>
                   </div>
                 </div>
-                <p className="whitespace-pre-wrap text-sm text-black dark:text-white">
-                  {reply.message}
-                </p>
+                <p className="whitespace-pre-wrap text-sm text-black dark:text-white">{reply.message}</p>
                 <AttachmentList attachments={reply.attachments} />
               </div>
             ))}
@@ -519,16 +543,11 @@ export default function SupportPage() {
           </div>
 
           {/* Reply Input */}
-          {selectedTicket.status !== "closed" && (
+          {selectedTicket!.status !== "closed" && (
             <div className="border-t border-gray-200 p-4 dark:border-gray-800 sm:p-6">
-              {/* Attachment Preview */}
               {replyAttachments.length > 0 && (
                 <div className="mb-3">
-                  <AttachmentList
-                    attachments={replyAttachments}
-                    canRemove
-                    onRemove={removeReplyAttachment}
-                  />
+                  <AttachmentList attachments={replyAttachments} canRemove onRemove={removeReplyAttachment} />
                 </div>
               )}
 
@@ -543,7 +562,6 @@ export default function SupportPage() {
                   />
                 </div>
                 <div className="flex flex-wrap items-center gap-2 sm:justify-between">
-                  {/* File upload button */}
                   <div className="flex items-center gap-2">
                     <input
                       ref={replyFileInputRef}
@@ -577,7 +595,6 @@ export default function SupportPage() {
                     </span>
                   </div>
 
-                  {/* Send button */}
                   <button
                     onClick={handleSendReply}
                     disabled={!replyMessage.trim() || isSendingReply}
@@ -599,7 +616,7 @@ export default function SupportPage() {
             </div>
           )}
 
-          {selectedTicket.status === "closed" && (
+          {selectedTicket!.status === "closed" && (
             <div className="border-t border-gray-200 p-4 dark:border-gray-800">
               <p className="text-center text-sm text-body-color dark:text-body-color-dark">
                 This ticket is closed. Create a new ticket if you need further assistance.
@@ -644,9 +661,7 @@ export default function SupportPage() {
 
       {/* Header */}
       <div className="mb-6 sm:mb-8">
-        <h1 className="text-2xl font-bold text-black dark:text-white sm:text-3xl">
-          Support Center
-        </h1>
+        <h1 className="text-2xl font-bold text-black dark:text-white sm:text-3xl">Support Center</h1>
         <p className="mt-1 text-sm text-body-color dark:text-body-color-dark sm:text-base">
           Get help from our support team
         </p>
@@ -655,7 +670,7 @@ export default function SupportPage() {
       {/* Tabs */}
       <div className="mb-6 flex gap-2">
         <button
-          onClick={() => setActiveTab("tickets")}
+          onClick={() => handleTabChange("tickets")}
           className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
             activeTab === "tickets"
               ? "bg-primary text-white"
@@ -668,7 +683,7 @@ export default function SupportPage() {
           My Tickets
         </button>
         <button
-          onClick={() => setActiveTab("new")}
+          onClick={() => handleTabChange("new")}
           className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
             activeTab === "new"
               ? "bg-primary text-white"
@@ -687,15 +702,25 @@ export default function SupportPage() {
         <div className="rounded-xl bg-white shadow-lg dark:bg-gray-dark">
           {tickets.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <svg className="mb-4 h-16 w-16 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              <svg
+                className="mb-4 h-16 w-16 text-gray-300 dark:text-gray-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                />
               </svg>
               <h3 className="mb-2 text-lg font-semibold text-black dark:text-white">No tickets yet</h3>
               <p className="mb-4 text-sm text-body-color dark:text-body-color-dark">
                 Create a new ticket to get help from our support team
               </p>
               <button
-                onClick={() => setActiveTab("new")}
+                onClick={() => handleTabChange("new")}
                 className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
               >
                 Create Ticket
@@ -706,7 +731,7 @@ export default function SupportPage() {
               {tickets.map((ticket) => (
                 <button
                   key={ticket.id}
-                  onClick={() => setSelectedTicket(ticket)}
+                  onClick={() => handleSelectTicket(ticket)}
                   className="flex w-full flex-col gap-3 p-4 text-left transition-colors hover:bg-gray-50 dark:hover:bg-black/20 sm:flex-row sm:items-center sm:justify-between sm:p-6"
                 >
                   <div className="min-w-0 flex-1">
@@ -722,7 +747,7 @@ export default function SupportPage() {
                       {ticket.message}
                     </p>
                     <div className="flex flex-wrap items-center gap-2 text-xs text-body-color dark:text-body-color-dark">
-                      <span>#{ticket.id}</span>
+                      <span>#{ticket.id.slice(-8)}</span>
                       <span>•</span>
                       <span>{categories.find((c) => c.value === ticket.category)?.label}</span>
                       <span>•</span>
@@ -744,12 +769,12 @@ export default function SupportPage() {
                     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${getPriorityColor(ticket.priority)}`}>
                       {ticket.priority}
                     </span>
-                    {ticket.replies.length > 0 && (
+                    {(ticket.replyCount ?? 0) > 0 && (
                       <span className="flex items-center gap-1 text-xs text-body-color dark:text-body-color-dark">
                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                         </svg>
-                        {ticket.replies.length}
+                        {ticket.replyCount}
                       </span>
                     )}
                     <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -766,18 +791,14 @@ export default function SupportPage() {
       {/* New Ticket Tab */}
       {activeTab === "new" && (
         <div className="rounded-xl bg-white p-4 shadow-lg dark:bg-gray-dark sm:p-6">
-          <h2 className="mb-2 text-lg font-bold text-black dark:text-white sm:text-xl">
-            Create New Ticket
-          </h2>
+          <h2 className="mb-2 text-lg font-bold text-black dark:text-white sm:text-xl">Create New Ticket</h2>
           <p className="mb-6 text-sm text-body-color dark:text-body-color-dark">
             Fill out the form below and our team will get back to you as soon as possible
           </p>
 
           <form onSubmit={handleCreateTicket} className="space-y-4">
             <div>
-              <label className="mb-2 block text-sm font-semibold text-black dark:text-white">
-                Subject *
-              </label>
+              <label className="mb-2 block text-sm font-semibold text-black dark:text-white">Subject *</label>
               <input
                 type="text"
                 value={newTicket.subject}
@@ -787,16 +808,12 @@ export default function SupportPage() {
                 }`}
                 placeholder="Brief description of your issue"
               />
-              {formErrors.subject && (
-                <p className="mt-1 text-xs text-red-500">{formErrors.subject}</p>
-              )}
+              {formErrors.subject && <p className="mt-1 text-xs text-red-500">{formErrors.subject}</p>}
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="mb-2 block text-sm font-semibold text-black dark:text-white">
-                  Category *
-                </label>
+                <label className="mb-2 block text-sm font-semibold text-black dark:text-white">Category *</label>
                 <select
                   value={newTicket.category}
                   onChange={(e) => setNewTicket({ ...newTicket, category: e.target.value })}
@@ -817,15 +834,11 @@ export default function SupportPage() {
                     </option>
                   ))}
                 </select>
-                {formErrors.category && (
-                  <p className="mt-1 text-xs text-red-500">{formErrors.category}</p>
-                )}
+                {formErrors.category && <p className="mt-1 text-xs text-red-500">{formErrors.category}</p>}
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-black dark:text-white">
-                  Priority
-                </label>
+                <label className="mb-2 block text-sm font-semibold text-black dark:text-white">Priority</label>
                 <select
                   value={newTicket.priority}
                   onChange={(e) =>
@@ -848,9 +861,7 @@ export default function SupportPage() {
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-semibold text-black dark:text-white">
-                Message *
-              </label>
+              <label className="mb-2 block text-sm font-semibold text-black dark:text-white">Message *</label>
               <textarea
                 value={newTicket.message}
                 onChange={(e) => setNewTicket({ ...newTicket, message: e.target.value })}
@@ -860,9 +871,7 @@ export default function SupportPage() {
                 }`}
                 placeholder="Please describe your issue in detail..."
               />
-              {formErrors.message && (
-                <p className="mt-1 text-xs text-red-500">{formErrors.message}</p>
-              )}
+              {formErrors.message && <p className="mt-1 text-xs text-red-500">{formErrors.message}</p>}
             </div>
 
             {/* File Upload Section */}
@@ -881,11 +890,7 @@ export default function SupportPage() {
 
                 {ticketAttachments.length > 0 && (
                   <div className="mb-4">
-                    <AttachmentList
-                      attachments={ticketAttachments}
-                      canRemove
-                      onRemove={removeTicketAttachment}
-                    />
+                    <AttachmentList attachments={ticketAttachments} canRemove onRemove={removeTicketAttachment} />
                   </div>
                 )}
 
@@ -919,7 +924,12 @@ export default function SupportPage() {
 
             <div className="rounded-lg bg-blue-50 p-4 dark:bg-blue-900/20">
               <div className="flex gap-3">
-                <svg className="h-5 w-5 flex-shrink-0 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg
+                  className="h-5 w-5 flex-shrink-0 text-blue-600 dark:text-blue-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div className="text-sm">

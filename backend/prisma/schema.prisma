@@ -73,6 +73,7 @@ model User {
   emailVerified    Boolean   @default(false)
   twoFactorEnabled Boolean   @default(false)
   twoFactorSecret  String?
+  backupCodes      String[]  @default([])
   kycStatus        String    @default("none") // none | pending | verified | rejected
   balance          Float     @default(0)
   referralCode     String    @unique
@@ -119,6 +120,17 @@ model Otp {
   code      String
   attempts  Int      @default(0)
   expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
+
+model PasswordReset {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
   createdAt DateTime @default(now())
 
   @@index([email])
@@ -299,4 +311,26 @@ model FundOperation {
   reference   String    @default("")
   createdAt   DateTime  @default(now())
   completedAt DateTime?
+}
+
+// ──────────────────────────────────────────────
+// Payment Wallets (Admin-managed)
+// ──────────────────────────────────────────────
+
+model PaymentWallet {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  type          String   // bank | crypto
+  method        String   // For crypto: BTC | ETH | USDT | USDC, For bank: bank_transfer
+  name          String   // e.g., "Bitcoin Wallet", "Main Bank Account"
+  address       String   // Wallet address or account number
+  network       String   @default("") // For crypto: Bitcoin Network, ERC20, etc.
+  bankName      String   @default("") // For bank transfers
+  accountName   String   @default("") // For bank transfers
+  swiftCode     String   @default("") // For bank transfers
+  routingNumber String   @default("") // For bank transfers
+  instructions  String   @default("") // Additional instructions
+  qrCodeData    String   @default("") // QR code data for easy scanning
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }

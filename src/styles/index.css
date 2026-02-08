@@ -12,6 +12,7 @@ layer(base);
   --breakpoint-md: 768px;
   --breakpoint-lg: 992px;
   --breakpoint-xl: 1200px;
+  --breakpoint-xlg: 1360px;
   --breakpoint-2xl: 1400px;
 
   --color-current: currentColor;

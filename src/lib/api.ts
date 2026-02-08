@@ -1,93 +1,136 @@
+import axios, { AxiosInstance, AxiosError } from "axios";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
 interface ApiResponse<T> {
   success: boolean;
   data?: T;
   message?: string;
+  errors?: Record<string, string>;
 }
 
 export class ApiClient {
-  private baseURL: string;
-  private token: string | null = null;
+  private axiosInstance: AxiosInstance;
 
   constructor(baseURL: string = API_URL) {
-    this.baseURL = baseURL;
+    this.axiosInstance = axios.create({
+      baseURL,
+      headers: {
+        "Content-Type": "application/json",
+      },
+      withCredentials: true, // CRITICAL: Allow cross-origin requests with Authorization headers
+    });
 
-    // Load token from localStorage if available (client-side only)
-    if (typeof window !== "undefined") {
-      this.token = localStorage.getItem("accessToken");
-    }
+    // Request interceptor to add auth token
+    this.axiosInstance.interceptors.request.use(
+      (config) => {
+        if (typeof window !== "undefined") {
+          const token = localStorage.getItem("accessToken");
+          if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+          }
+        }
+        return config;
+      },
+      (error) => {
+        return Promise.reject(error);
+      }
+    );
+
+    // Response interceptor for error handling
+    this.axiosInstance.interceptors.response.use(
+      (response) => response,
+      async (error: AxiosError) => {
+        // Don't auto-refresh for endpoints where 401 is a valid business response
+        const skipRefreshUrls = [
+          "/api/settings/password",
+          "/api/settings/account",              // Wrong password during account deletion
+          "/api/auth/login",
+          "/api/auth/register",
+          "/api/auth/force-login",              // Wrong password during force login
+          "/api/2fa/enable",                    // Wrong 2FA code during setup
+          "/api/2fa/disable",                   // Wrong password when disabling
+          "/api/2fa/backup-codes/regenerate",   // Wrong 2FA code when regenerating
+        ];
+
+        const requestUrl = error.config?.url || "";
+        const shouldSkipRefresh = skipRefreshUrls.some(url => requestUrl.includes(url));
+
+        if (error.response?.status === 401 && !shouldSkipRefresh) {
+          // Token expired, try to refresh
+          const refreshToken = localStorage.getItem("refreshToken");
+          if (refreshToken) {
+            try {
+              const response = await axios.post(`${baseURL}/api/auth/refresh-token`, {
+                refreshToken,
+              });
+              const { accessToken, refreshToken: newRefreshToken } = response.data.data;
+              localStorage.setItem("accessToken", accessToken);
+              localStorage.setItem("refreshToken", newRefreshToken); // ← Save the NEW refresh token!
+
+              // Retry the original request
+              if (error.config) {
+                error.config.headers.Authorization = `Bearer ${accessToken}`;
+                return axios.request(error.config);
+              }
+            } catch (refreshError) {
+              // Refresh failed, clear tokens and redirect to login
+              this.clearToken();
+              if (typeof window !== "undefined") {
+                window.location.href = "/signin";
+              }
+            }
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
   }
 
   setToken(token: string) {
-    this.token = token;
     if (typeof window !== "undefined") {
       localStorage.setItem("accessToken", token);
     }
   }
 
   clearToken() {
-    this.token = null;
     if (typeof window !== "undefined") {
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
     }
   }
 
-  private async request<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<ApiResponse<T>> {
-    const headers: HeadersInit = {
-      "Content-Type": "application/json",
-      ...options.headers,
-    };
-
-    if (this.token) {
-      headers["Authorization"] = `Bearer ${this.token}`;
-    }
-
-    try {
-      const response = await fetch(`${this.baseURL}${endpoint}`, {
-        ...options,
-        headers,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "API request failed");
-      }
-
-      return data;
-    } catch (error) {
-      console.error(`API Error (${endpoint}):`, error);
-      throw error;
-    }
-  }
-
   // Public endpoints
   async getTeamMembers() {
-    return this.request<any[]>("/api/public/team");
+    const response = await this.axiosInstance.get<ApiResponse<any[]>>("/api/public/team");
+    return response.data;
   }
 
   async getTestimonials() {
-    return this.request<any[]>("/api/public/testimonials");
+    const response = await this.axiosInstance.get<ApiResponse<any[]>>("/api/public/testimonials");
+    return response.data;
   }
 
   async getInvestmentOptions() {
-    return this.request<any[]>("/api/public/investments");
+    const response = await this.axiosInstance.get<ApiResponse<any[]>>("/api/public/investments");
+    return response.data;
   }
 
   // Auth endpoints
   async login(email: string, password: string) {
-    return this.request<{ user: any; accessToken: string; refreshToken: string }>(
+    const response = await this.axiosInstance.post<ApiResponse<{ user: any; accessToken: string; refreshToken: string }>>(
       "/api/auth/login",
-      {
-        method: "POST",
-        body: JSON.stringify({ email, password }),
-      }
+      { email, password }
     );
+    return response.data;
+  }
+
+  async forceLogin(email: string, password: string) {
+    const response = await this.axiosInstance.post<ApiResponse<{ user: any; accessToken: string; refreshToken: string; message: string }>>(
+      "/api/auth/force-login",
+      { email, password }
+    );
+    return response.data;
   }
 
   async register(data: {
@@ -96,62 +139,109 @@ export class ApiClient {
     firstName: string;
     lastName: string;
   }) {
-    return this.request<{ user: any }>("/api/auth/register", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
+    const response = await this.axiosInstance.post<ApiResponse<{ user: any }>>(
+      "/api/auth/register",
+      data
+    );
+    return response.data;
+  }
+
+  async forgotPassword(email: string) {
+    const response = await this.axiosInstance.post<ApiResponse<null>>(
+      "/api/auth/forgot-password",
+      { email }
+    );
+    return response.data;
+  }
+
+  async resetPassword(token: string, newPassword: string) {
+    const response = await this.axiosInstance.post<ApiResponse<null>>(
+      "/api/auth/reset-password",
+      { token, newPassword }
+    );
+    return response.data;
   }
 
   async logout() {
-    const response = await this.request<void>("/api/auth/logout", {
-      method: "POST",
-    });
+    const response = await this.axiosInstance.post<ApiResponse<void>>("/api/auth/logout");
     this.clearToken();
-    return response;
+    return response.data;
   }
 
   async refreshToken(refreshToken: string) {
-    return this.request<{ accessToken: string; refreshToken: string }>(
+    const response = await this.axiosInstance.post<ApiResponse<{ accessToken: string; refreshToken: string }>>(
       "/api/auth/refresh-token",
-      {
-        method: "POST",
-        body: JSON.stringify({ refreshToken }),
-      }
+      { refreshToken }
     );
+    return response.data;
   }
 
   // User endpoints
   async getProfile() {
-    return this.request<any>("/api/profile");
+    const response = await this.axiosInstance.get<ApiResponse<any>>("/api/profile");
+    return response.data;
   }
 
   async updateProfile(data: any) {
-    return this.request<any>("/api/profile", {
-      method: "PUT",
-      body: JSON.stringify(data),
-    });
+    const response = await this.axiosInstance.put<ApiResponse<any>>("/api/profile", data);
+    return response.data;
   }
 
   async getTransactions() {
-    return this.request<any[]>("/api/transactions");
+    const response = await this.axiosInstance.get<ApiResponse<any[]>>("/api/transactions");
+    return response.data;
+  }
+
+  async getBalanceSummary() {
+    const response = await this.axiosInstance.get<ApiResponse<{
+      balance: number;
+      breakdown: {
+        deposits: number;
+        profits: number;
+        adminBonuses: number;
+        referralBonuses: number;
+        transferIn: number;
+        withdrawals: number;
+        investedFunds: number;
+        transferOut: number;
+      };
+    }>>("/api/transactions/balance");
+    return response.data;
   }
 
   async getInvestments() {
-    return this.request<any[]>("/api/investments");
+    const response = await this.axiosInstance.get<ApiResponse<any[]>>("/api/investments");
+    return response.data;
   }
 
   async getNotifications() {
-    return this.request<any[]>("/api/notifications");
+    const response = await this.axiosInstance.get<ApiResponse<any[]>>("/api/notifications");
+    return response.data;
   }
 
   async markNotificationAsRead(id: string) {
-    return this.request<void>(`/api/notifications/${id}/read`, {
-      method: "PATCH",
-    });
+    const response = await this.axiosInstance.patch<ApiResponse<void>>(`/api/notifications/${id}/read`);
+    return response.data;
+  }
+
+  async markAllNotificationsRead() {
+    const response = await this.axiosInstance.put<ApiResponse<void>>("/api/notifications/read-all");
+    return response.data;
+  }
+
+  async clearAllNotifications() {
+    const response = await this.axiosInstance.delete<ApiResponse<void>>("/api/notifications");
+    return response.data;
   }
 
   async getSupportTickets() {
-    return this.request<any[]>("/api/support");
+    const response = await this.axiosInstance.get<ApiResponse<any[]>>("/api/support");
+    return response.data;
+  }
+
+  async getSupportTicket(id: string) {
+    const response = await this.axiosInstance.get<ApiResponse<any>>(`/api/support/${id}`);
+    return response.data;
   }
 
   async createSupportTicket(data: {
@@ -159,44 +249,157 @@ export class ApiClient {
     category: string;
     priority: string;
     message: string;
+    attachmentIds?: string[];
   }) {
-    return this.request<any>("/api/support", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
+    const response = await this.axiosInstance.post<ApiResponse<any>>("/api/support", data);
+    return response.data;
+  }
+
+  async replySupportTicket(id: string, data: { message: string; attachmentIds?: string[] }) {
+    const response = await this.axiosInstance.post<ApiResponse<any>>(`/api/support/${id}/reply`, data);
+    return response.data;
+  }
+
+  async updateSupportTicket(id: string, data: { status?: string }) {
+    const response = await this.axiosInstance.put<ApiResponse<any>>(`/api/support/${id}`, data);
+    return response.data;
+  }
+
+  async uploadSupportAttachment(file: File) {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await this.axiosInstance.post<ApiResponse<any>>(
+      "/api/support/upload",
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } }
+    );
+    return response.data;
   }
 
   async getProperties() {
-    return this.request<any[]>("/api/properties");
+    const response = await this.axiosInstance.get<ApiResponse<any[]>>("/api/properties");
+    return response.data;
   }
 
   async getFeaturedProperties() {
-    return this.request<any[]>("/api/properties/featured");
+    const response = await this.axiosInstance.get<ApiResponse<any[]>>("/api/properties/featured");
+    return response.data;
   }
 
   async getReferralStats() {
-    return this.request<any>("/api/referral");
+    const response = await this.axiosInstance.get<ApiResponse<any>>("/api/referral");
+    return response.data;
   }
 
   async getSettings() {
-    return this.request<any>("/api/settings");
+    const response = await this.axiosInstance.get<ApiResponse<any>>("/api/settings");
+    return response.data;
   }
 
   async updateSettings(data: any) {
-    return this.request<any>("/api/settings", {
-      method: "PUT",
-      body: JSON.stringify(data),
-    });
+    const response = await this.axiosInstance.put<ApiResponse<any>>("/api/settings", data);
+    return response.data;
+  }
+
+  async changePassword(currentPassword: string, newPassword: string) {
+    const response = await this.axiosInstance.put<ApiResponse<null>>(
+      "/api/settings/password",
+      { currentPassword, newPassword }
+    );
+    return response.data;
   }
 
   async getSessions() {
-    return this.request<any[]>("/api/sessions");
+    const response = await this.axiosInstance.get<ApiResponse<any[]>>("/api/sessions");
+    return response.data;
   }
 
   async terminateSession(id: string) {
-    return this.request<void>(`/api/sessions/${id}`, {
-      method: "DELETE",
+    const response = await this.axiosInstance.delete<ApiResponse<void>>(`/api/sessions/${id}`);
+    return response.data;
+  }
+
+  async deleteAccount(password: string) {
+    const response = await this.axiosInstance.delete<ApiResponse<null>>("/api/settings/account", {
+      data: { password },
     });
+    return response.data;
+  }
+
+  // Two-Factor Authentication endpoints
+  async get2FAStatus() {
+    const response = await this.axiosInstance.get<ApiResponse<{ enabled: boolean; backupCodesCount: number }>>("/api/2fa/status");
+    return response.data;
+  }
+
+  async setup2FA() {
+    const response = await this.axiosInstance.post<ApiResponse<{ secret: string; qrCode: string; manualEntry: string }>>("/api/2fa/setup");
+    return response.data;
+  }
+
+  async enable2FA(code: string) {
+    const response = await this.axiosInstance.post<ApiResponse<{ enabled: boolean; backupCodes: string[] }>>("/api/2fa/enable", { code });
+    return response.data;
+  }
+
+  async disable2FA(code: string) {
+    const response = await this.axiosInstance.post<ApiResponse<{ disabled: boolean }>>("/api/2fa/disable", { code });
+    return response.data;
+  }
+
+  async regenerateBackupCodes(code: string) {
+    const response = await this.axiosInstance.post<ApiResponse<{ backupCodes: string[] }>>("/api/2fa/backup-codes/regenerate", { code });
+    return response.data;
+  }
+
+  // Payment Methods endpoints
+  async getPaymentMethods(type?: "bank" | "crypto") {
+    const url = type ? `/api/payment-methods?type=${type}` : "/api/payment-methods";
+    const response = await this.axiosInstance.get<ApiResponse<any[]>>(url);
+    return response.data;
+  }
+
+  async getPaymentMethodById(id: string) {
+    const response = await this.axiosInstance.get<ApiResponse<any>>(`/api/payment-methods/${id}`);
+    return response.data;
+  }
+
+  // Fund Operations endpoints
+  async createDeposit(data: { method: string; amount: number; details?: any }) {
+    const response = await this.axiosInstance.post<ApiResponse<any>>("/api/fund-operations/deposit", data);
+    return response.data;
+  }
+
+  async createWithdrawal(data: { method: string; amount: number; details?: any }) {
+    const response = await this.axiosInstance.post<ApiResponse<any>>("/api/fund-operations/withdrawal", data);
+    return response.data;
+  }
+
+  async uploadPaymentReceipt(reference: string, file: File) {
+    const formData = new FormData();
+    formData.append("reference", reference);
+    formData.append("receipt", file);
+    const response = await this.axiosInstance.post<ApiResponse<null>>(
+      "/api/fund-operations/upload-receipt",
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } }
+    );
+    return response.data;
+  }
+
+  async getFundOperations(type?: "deposit" | "withdrawal", status?: string) {
+    let url = "/api/fund-operations";
+    const params = new URLSearchParams();
+    if (type) params.append("type", type);
+    if (status) params.append("status", status);
+    if (params.toString()) url += `?${params.toString()}`;
+    const response = await this.axiosInstance.get<ApiResponse<any[]>>(url);
+    return response.data;
+  }
+
+  async getFundOperationById(id: string) {
+    const response = await this.axiosInstance.get<ApiResponse<any>>(`/api/fund-operations/${id}`);
+    return response.data;
   }
 }
 

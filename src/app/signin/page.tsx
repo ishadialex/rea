@@ -1,24 +1,41 @@
 "use client";
 
 import Link from "next/link";
-import { useState, FormEvent, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, FormEvent, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { loadReCaptchaScript, executeReCaptcha } from "@/utils/recaptcha";
 import axios from "axios";
 import { api } from "@/lib/api";
 
-const SigninPage = () => {
+function SigninContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [recaptchaLoaded, setRecaptchaLoaded] = useState(false);
+  const [requiresVerification, setRequiresVerification] = useState(false);
+  const [unverifiedEmail, setUnverifiedEmail] = useState("");
+  const [sessionTimeoutWarning, setSessionTimeoutWarning] = useState(false);
+  const [showExistingSessionModal, setShowExistingSessionModal] = useState(false);
+  const [existingSessionData, setExistingSessionData] = useState<any>(null);
 
   const RECAPTCHA_SITE_KEY =
     process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ||
     "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"; // Test key
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+
+  // Check for session timeout, revocation, or account deletion
+  useEffect(() => {
+    const reason = searchParams.get('reason');
+    if (reason === 'session_timeout' || reason === 'session_revoked' || reason === 'account_deleted') {
+      setSessionTimeoutWarning(true);
+      setTimeout(() => setSessionTimeoutWarning(false), 10000);
+    }
+  }, [searchParams]);
 
   // Load reCAPTCHA script on mount
   useEffect(() => {
@@ -32,9 +49,35 @@ const SigninPage = () => {
       });
   }, [RECAPTCHA_SITE_KEY]);
 
+  const storeSessionAndRedirect = (data: { user: any; accessToken: string; refreshToken: string }) => {
+    localStorage.setItem("accessToken", data.accessToken);
+    localStorage.setItem("refreshToken", data.refreshToken);
+    localStorage.setItem("isLoggedIn", "true");
+    localStorage.setItem("userEmail", email);
+    localStorage.setItem("user", JSON.stringify(data.user));
+    api.setToken(data.accessToken);
+    router.push("/dashboard");
+  };
+
+  const handleForceLogin = async () => {
+    setIsLoading(true);
+    setShowExistingSessionModal(false);
+    try {
+      const response = await axios.post(`${API_URL}/api/auth/force-login`, { email, password });
+      if (response.data.success) {
+        storeSessionAndRedirect(response.data.data);
+      }
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || "Login failed. Please try again.";
+      setError(errorMessage);
+      setIsLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
+    setRequiresVerification(false);
 
     if (!recaptchaLoaded) {
       setError("Security verification not ready. Please try again.");
@@ -50,42 +93,111 @@ const SigninPage = () => {
 
       // Call backend login API using axios
       const response = await axios.post(
-        "http://localhost:4000/api/auth/login",
-        {
-          email,
-          password,
-        }
+        `${API_URL}/api/auth/login`,
+        { email, password }
       );
 
       if (response.data.success) {
-        // Store tokens and user info in localStorage
-        localStorage.setItem("accessToken", response.data.data.accessToken);
-        localStorage.setItem("refreshToken", response.data.data.refreshToken);
-        localStorage.setItem("isLoggedIn", "true");
-        localStorage.setItem("userEmail", email);
-        localStorage.setItem("user", JSON.stringify(response.data.data.user));
-
-        // Set token in API client
-        api.setToken(response.data.data.accessToken);
-
-        // Redirect to dashboard
-        router.push("/dashboard");
+        storeSessionAndRedirect(response.data.data);
       } else {
         setError("Login failed. Please try again.");
         setIsLoading(false);
       }
-    } catch (error: any) {
-      console.error("Login error:", error);
-      const errorMessage =
-        error.response?.data?.message || "Invalid email or password. Please try again.";
-      setError(errorMessage);
+    } catch (err: any) {
+      console.error("Login error:", err);
+
+      // Active session on another device - show warning modal
+      if (err.response?.status === 409 && err.response?.data?.requiresForceLogin) {
+        setExistingSessionData(err.response.data);
+        setShowExistingSessionModal(true);
+        setIsLoading(false);
+        return;
+      }
+
+      // Check if email verification is required
+      if (err.response?.data?.requiresVerification) {
+        setRequiresVerification(true);
+        setUnverifiedEmail(err.response.data.email || email);
+        setError(err.response.data.message);
+      } else {
+        const errorMessage =
+          err.response?.data?.message || "Invalid email or password. Please try again.";
+        setError(errorMessage);
+      }
       setIsLoading(false);
     }
   };
+  const formatLastActive = (date: string) => {
+    return new Date(date).toLocaleString("en-US", {
+      month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+    });
+  };
+
   return (
     <>
       {/* Loading Spinner */}
       {isLoading && <LoadingSpinner />}
+
+      {/* Existing Session Warning Modal */}
+      {showExistingSessionModal && existingSessionData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-dark w-full max-w-md rounded-xl shadow-2xl p-8">
+            <div className="mb-5 flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-900/30">
+                <svg className="h-6 w-6 text-yellow-600 dark:text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-black dark:text-white">Already Logged In</h3>
+                <p className="text-sm text-body-color">Active session detected on another device</p>
+              </div>
+            </div>
+
+            <div className="mb-5 rounded-lg bg-gray-50 dark:bg-gray-800/50 p-4 space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-body-color">Current Active Session</p>
+              <div className="flex items-center gap-2 text-sm text-dark dark:text-white">
+                <svg className="h-4 w-4 text-body-color shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                <span>{existingSessionData.existingSession.device} · {existingSessionData.existingSession.browser}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-dark dark:text-white">
+                <svg className="h-4 w-4 text-body-color shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span>{existingSessionData.existingSession.location}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-body-color">
+                <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Last active: {formatLastActive(existingSessionData.existingSession.lastActive)}</span>
+              </div>
+            </div>
+
+            <p className="mb-6 text-sm text-body-color">
+              Continuing will log out the other device immediately. Only one active session is allowed at a time.
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setShowExistingSessionModal(false); setIsLoading(false); }}
+                className="flex-1 rounded-xs border border-stroke bg-transparent px-6 py-3 text-sm font-medium text-dark transition hover:bg-gray-50 dark:border-strokedark dark:text-white dark:hover:bg-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleForceLogin}
+                className="flex-1 rounded-xs bg-primary px-6 py-3 text-sm font-medium text-white transition hover:bg-primary/90"
+              >
+                Continue on This Device
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <section className="relative z-10 overflow-hidden pt-36 pb-16 md:pb-20 lg:pt-[180px] lg:pb-28">
         <div className="container">
@@ -98,6 +210,25 @@ const SigninPage = () => {
                 <p className="text-body-color mb-11 text-center text-base font-medium">
                   Login to your account for a faster checkout.
                 </p>
+
+                {/* Session Timeout / Revoked Warning */}
+                {sessionTimeoutWarning && (
+                  <div className="mb-6 rounded-lg bg-yellow-100 p-4 dark:bg-yellow-900/30">
+                    <div className="flex items-center gap-2">
+                      <svg className="h-5 w-5 flex-shrink-0 text-yellow-600 dark:text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <p className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
+                        {searchParams.get('reason') === 'session_revoked'
+                          ? 'You were logged out because someone signed in from another device.'
+                          : searchParams.get('reason') === 'account_deleted'
+                          ? 'Your account has been deactivated. Contact support to restore access.'
+                          : 'Your session expired due to inactivity. Please sign in again.'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 <button className="border-stroke dark:text-body-color-dark dark:shadow-two text-body-color hover:border-primary hover:bg-primary/5 hover:text-primary dark:hover:border-primary dark:hover:bg-primary/5 dark:hover:text-primary mb-6 flex w-full items-center justify-center rounded-xs border bg-[#f8f8f8] px-6 py-3 text-base outline-hidden transition-all duration-300 dark:border-transparent dark:bg-[#2C303B] dark:hover:shadow-none">
                   <span className="mr-3">
                     <svg
@@ -158,8 +289,17 @@ const SigninPage = () => {
                 </div>
                 <form onSubmit={handleSubmit}>
                   {error && (
-                    <div className="mb-6 rounded-lg bg-red-100 p-4 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-400">
-                      {error}
+                    <div className={`mb-6 rounded-lg p-4 text-sm ${requiresVerification ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
+                      <p className="mb-3">{error}</p>
+                      {requiresVerification && (
+                        <button
+                          type="button"
+                          onClick={() => router.push(`/verify-otp?email=${encodeURIComponent(unverifiedEmail)}`)}
+                          className="mt-2 w-full rounded-sm bg-primary px-4 py-2 font-medium text-white hover:bg-primary/90 transition-all duration-300"
+                        >
+                          Verify Email Now
+                        </button>
+                      )}
                     </div>
                   )}
                   <div className="mb-8">
@@ -357,6 +497,14 @@ const SigninPage = () => {
         </div>
       </section>
     </>
+  );
+}
+
+const SigninPage = () => {
+  return (
+    <Suspense fallback={<LoadingSpinner />}>
+      <SigninContent />
+    </Suspense>
   );
 };
 

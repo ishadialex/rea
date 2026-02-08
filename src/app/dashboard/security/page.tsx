@@ -2,25 +2,26 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { api } from "@/lib/api";
 
 const SecuritySettingsPage = () => {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
-  const [kycStatus, setKycStatus] = useState<"pending" | "verified" | "not_started">("not_started");
+  const [kycStatus, setKycStatus] = useState<"pending" | "verified" | "rejected" | null>(null);
 
   useEffect(() => {
-    // Check if 2FA is enabled
-    const twoFAStatus = localStorage.getItem("twoFactorEnabled");
-    if (twoFAStatus === "true") {
-      setTwoFactorEnabled(true);
-    }
+    const fetchUserData = async () => {
+      try {
+        const response = await api.getProfile();
+        if (response.success && response.data) {
+          setTwoFactorEnabled(response.data.twoFactorEnabled || false);
+          setKycStatus(response.data.kycStatus || null);
+        }
+      } catch (error) {
+        console.error("Failed to fetch user data:", error);
+      }
+    };
 
-    // Check KYC status
-    const storedKycStatus = localStorage.getItem("kycStatus");
-    if (storedKycStatus === "verified") {
-      setKycStatus("verified");
-    } else if (storedKycStatus === "pending") {
-      setKycStatus("pending");
-    }
+    fetchUserData();
   }, []);
 
   const securityFeatures = [
@@ -42,12 +43,12 @@ const SecuritySettingsPage = () => {
           />
         </svg>
       ),
-      status: twoFactorEnabled ? "enabled" : "not_enabled",
-      statusText: twoFactorEnabled ? "Enabled" : "Not Enabled",
+      status: twoFactorEnabled ? "enabled" : "disabled",
+      statusText: twoFactorEnabled ? "Enabled" : "Disabled",
       statusColor: twoFactorEnabled
-        ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-        : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
-      link: "/dashboard/security/setup-2fa",
+        ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+        : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
+      link: twoFactorEnabled ? "/dashboard/security/manage-2fa" : "/dashboard/security/setup-2fa",
       buttonText: twoFactorEnabled ? "Manage 2FA" : "Setup 2FA",
     },
     {
@@ -72,15 +73,19 @@ const SecuritySettingsPage = () => {
       statusText:
         kycStatus === "verified"
           ? "Verified"
+          : kycStatus === "rejected"
+          ? "Rejected"
           : kycStatus === "pending"
           ? "Pending Review"
-          : "Not Verified",
+          : "Not Started",
       statusColor:
         kycStatus === "verified"
-          ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+          ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+          : kycStatus === "rejected"
+          ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
           : kycStatus === "pending"
-          ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-          : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+          ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+          : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
       link: "/dashboard/security/kyc",
       buttonText:
         kycStatus === "verified"
@@ -117,7 +122,7 @@ const SecuritySettingsPage = () => {
                   {feature.icon}
                 </div>
                 <span
-                  className={`rounded-full px-3 py-1 text-xs font-semibold ${feature.statusColor}`}
+                  className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${feature.statusColor}`}
                 >
                   {feature.statusText}
                 </span>

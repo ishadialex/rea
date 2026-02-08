@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import crypto from "crypto";
 import { prisma } from "../config/database.js";
 import { success, error } from "../utils/response.js";
 
@@ -7,35 +8,37 @@ export async function deposit(req: Request, res: Response) {
     const userId = req.userId!;
     const { method, amount, details } = req.body;
 
-    const [operation] = await prisma.$transaction([
-      prisma.fundOperation.create({
-        data: {
-          userId,
-          type: "deposit",
-          method,
-          amount,
-          status: "completed",
-          details: JSON.stringify(details || {}),
-          completedAt: new Date(),
-        },
-      }),
-      prisma.transaction.create({
-        data: {
-          userId,
-          type: "deposit",
-          amount,
-          status: "completed",
-          description: `Deposit via ${method}`,
-        },
-      }),
-      prisma.user.update({
-        where: { id: userId },
-        data: { balance: { increment: amount } },
-      }),
-    ]);
+    // Generate unique reference number
+    const reference = `DEP-${Date.now()}-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
 
-    return success(res, operation, "Deposit successful", 201);
+    // Create pending deposit request (requires admin approval)
+    const operation = await prisma.fundOperation.create({
+      data: {
+        userId,
+        type: "deposit",
+        method,
+        amount,
+        status: "pending",
+        details: JSON.stringify(details || {}),
+        reference,
+      },
+    });
+
+    // Create notification
+    await prisma.notification.create({
+      data: {
+        userId,
+        type: "system",
+        title: "Deposit Request Submitted",
+        message: `Your deposit request of $${amount.toLocaleString()} via ${method} has been submitted. Reference: ${reference}`,
+      },
+    });
+
+    console.log(`💰 Deposit request created: ${reference} - $${amount} via ${method} for user ${userId}`);
+
+    return success(res, operation, "Deposit request submitted successfully", 201);
   } catch (err) {
+    console.error("deposit error:", err);
     return error(res, "Failed to process deposit", 500);
   }
 }

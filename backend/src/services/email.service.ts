@@ -1,21 +1,4 @@
-import nodemailer from "nodemailer";
-import { env } from "../config/env.js";
-
-/**
- * Create and configure Nodemailer transporter
- * @returns Configured nodemailer transporter
- */
-function createTransporter() {
-  return nodemailer.createTransport({
-    host: env.SMTP_HOST,
-    port: env.SMTP_PORT,
-    secure: false, // true for 465, false for other ports
-    auth: {
-      user: env.SMTP_USER,
-      pass: env.SMTP_PASS,
-    },
-  });
-}
+import { transporter, emailConfig } from "../config/email.js";
 
 /**
  * Send OTP verification email
@@ -25,7 +8,6 @@ function createTransporter() {
  * @returns Promise that resolves when email is sent
  */
 export async function sendOtpEmail(email: string, code: string, firstName: string) {
-  const transporter = createTransporter();
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -173,7 +155,7 @@ Need help? Contact us at support@alvarado.com
 
   try {
     const info = await transporter.sendMail({
-      from: env.SMTP_FROM,
+      from: emailConfig.from,
       to: email,
       subject: "Verify Your Email Address - Alvarado",
       text: textContent,
@@ -194,7 +176,6 @@ Need help? Contact us at support@alvarado.com
  * @param firstName - User's first name
  */
 export async function sendWelcomeEmail(email: string, firstName: string) {
-  const transporter = createTransporter();
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -237,7 +218,7 @@ export async function sendWelcomeEmail(email: string, firstName: string) {
 
   try {
     await transporter.sendMail({
-      from: env.SMTP_FROM,
+      from: emailConfig.from,
       to: email,
       subject: "Welcome to Alvarado!",
       html: htmlContent,
@@ -247,4 +228,134 @@ export async function sendWelcomeEmail(email: string, firstName: string) {
     console.error(`❌ Failed to send welcome email to ${email}:`, error);
     // Don't throw error for welcome email - it's not critical
   }
+}
+
+/**
+ * Send password reset email with reset link
+ * @param email - Recipient email address
+ * @param firstName - User's first name
+ * @param resetToken - Unique reset token
+ * @param resetUrl - Full password reset URL
+ */
+export async function sendPasswordResetEmail(
+  email: string,
+  firstName: string,
+  resetUrl: string
+) {
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <style>
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+          line-height: 1.6;
+          color: #333;
+          margin: 0;
+          padding: 0;
+          background-color: #f4f4f4;
+        }
+        .container {
+          max-width: 600px;
+          margin: 40px auto;
+          background: #ffffff;
+          border-radius: 10px;
+          overflow: hidden;
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          padding: 30px;
+          text-align: center;
+        }
+        .content {
+          padding: 40px;
+        }
+        .button {
+          display: inline-block;
+          background: #667eea;
+          color: white !important;
+          padding: 14px 32px;
+          text-decoration: none;
+          border-radius: 6px;
+          margin: 20px 0;
+          font-weight: 600;
+        }
+        .warning {
+          background: #fff3cd;
+          border-left: 4px solid #ffc107;
+          padding: 15px;
+          margin: 20px 0;
+          border-radius: 4px;
+        }
+        .footer {
+          text-align: center;
+          padding: 20px;
+          color: #666;
+          font-size: 12px;
+          background: #f8f9fa;
+        }
+        .token-box {
+          background: #f8f9fa;
+          border: 2px dashed #dee2e6;
+          padding: 15px;
+          margin: 20px 0;
+          border-radius: 6px;
+          font-family: monospace;
+          font-size: 14px;
+          text-align: center;
+          word-break: break-all;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1 style="margin: 0;">🔐 Password Reset Request</h1>
+        </div>
+        <div class="content">
+          <p>Hello ${firstName},</p>
+          <p>We received a request to reset your password for your Alvarado account. Click the button below to create a new password:</p>
+
+          <div style="text-align: center;">
+            <a href="${resetUrl}" class="button">Reset Your Password</a>
+          </div>
+
+          <p style="color: #666; font-size: 14px;">Or copy and paste this link into your browser:</p>
+          <div class="token-box">${resetUrl}</div>
+
+          <div class="warning">
+            <strong>⚠️ Important:</strong>
+            <ul style="margin: 10px 0 0 0; padding-left: 20px;">
+              <li>This link will expire in <strong>1 hour</strong></li>
+              <li>If you didn't request this, please ignore this email</li>
+              <li>Your password won't change until you create a new one</li>
+            </ul>
+          </div>
+
+          <p style="margin-top: 30px;">If you're having trouble with the button above, contact our support team for assistance.</p>
+
+          <p>Best regards,<br><strong>The Alvarado Security Team</strong></p>
+        </div>
+        <div class="footer">
+          <p>This is an automated message. Please do not reply to this email.</p>
+          <p>&copy; ${new Date().getFullYear()} Alvarado. All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  await transporter.sendMail({
+    from: emailConfig.from,
+    to: email,
+    subject: "Reset Your Password - Alvarado",
+    html: htmlContent,
+  });
+
+  console.log(`✅ Password reset email sent to ${email}`);
 }

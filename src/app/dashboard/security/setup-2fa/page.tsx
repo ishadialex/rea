@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { api } from "@/lib/api";
 
 export default function Setup2FAPage() {
   const [step, setStep] = useState(1);
@@ -8,25 +9,77 @@ export default function Setup2FAPage() {
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [isEnabled, setIsEnabled] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  // In a real app, these would come from your backend
-  const secretKey = "JBSWY3DPEHPK3PXP";
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=otpauth://totp/Alvarado Associates:admin@alvaradoassociatepartners.com?secret=${secretKey}&issuer=Alvarado Associates`;
+  // Real data from backend
+  const [secretKey, setSecretKey] = useState("");
+  const [qrCodeUrl, setQrCodeUrl] = useState("");
 
-  const handleVerify = () => {
-    // In a real app, verify with backend
-    if (verificationCode.length === 6) {
-      // Generate backup codes
-      const codes = Array.from({ length: 8 }, () =>
-        Math.random().toString(36).substr(2, 8).toUpperCase()
-      );
-      setBackupCodes(codes);
-      setStep(3);
+  // Check if 2FA is already enabled
+  useEffect(() => {
+    check2FAStatus();
+  }, []);
+
+  const check2FAStatus = async () => {
+    try {
+      const result = await api.get2FAStatus();
+      if (result.success && result.data?.enabled) {
+        // Already enabled, redirect to settings
+        window.location.href = "/dashboard/settings?tab=privacy";
+      }
+    } catch (err) {
+      console.error("Failed to check 2FA status:", err);
+    }
+  };
+
+  const initiate2FASetup = async () => {
+    setIsLoading(true);
+    setError("");
+    try {
+      const result = await api.setup2FA();
+      if (result.success && result.data) {
+        setSecretKey(result.data.secret);
+        setQrCodeUrl(result.data.qrCode);
+        setStep(2);
+      } else {
+        setError(result.message || "Failed to setup 2FA");
+      }
+    } catch (err: any) {
+      console.error("2FA setup error:", err);
+      setError(err.response?.data?.message || "Failed to setup 2FA");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerify = async () => {
+    if (verificationCode.length !== 6) {
+      setError("Please enter a 6-digit code");
+      return;
+    }
+
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const result = await api.enable2FA(verificationCode);
+      if (result.success && result.data) {
+        setBackupCodes(result.data.backupCodes);
+        setIsEnabled(true);
+        setStep(3);
+      } else {
+        setError(result.message || "Invalid verification code");
+      }
+    } catch (err: any) {
+      console.error("2FA enable error:", err);
+      setError(err.response?.data?.message || "Invalid verification code. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleComplete = () => {
-    setIsEnabled(true);
     setStep(4);
   };
 
@@ -234,11 +287,18 @@ export default function Setup2FAPage() {
             </p>
           </div>
 
+          {error && (
+            <div className="mt-4 rounded-lg bg-red-50 p-4 dark:bg-red-900/20">
+              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            </div>
+          )}
+
           <button
-            onClick={() => setStep(2)}
-            className="mt-6 w-full rounded-lg bg-primary px-6 py-3 font-semibold text-white transition-colors hover:bg-primary/90"
+            onClick={initiate2FASetup}
+            disabled={isLoading}
+            className="mt-6 w-full rounded-lg bg-primary px-6 py-3 font-semibold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Continue Setup
+            {isLoading ? "Setting up..." : "Continue Setup"}
           </button>
         </div>
       )}
@@ -298,6 +358,9 @@ export default function Setup2FAPage() {
               placeholder="000000"
               className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-center text-2xl font-bold tracking-widest text-black outline-none focus:border-primary dark:border-gray-800 dark:bg-gray-800 dark:text-white"
             />
+            {error && (
+              <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>
+            )}
           </div>
 
           <div className="flex gap-4">
@@ -309,10 +372,10 @@ export default function Setup2FAPage() {
             </button>
             <button
               onClick={handleVerify}
-              disabled={verificationCode.length !== 6}
+              disabled={verificationCode.length !== 6 || isLoading}
               className="flex-1 rounded-lg bg-primary px-6 py-3 font-semibold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Verify & Continue
+              {isLoading ? "Verifying..." : "Verify & Continue"}
             </button>
           </div>
         </div>

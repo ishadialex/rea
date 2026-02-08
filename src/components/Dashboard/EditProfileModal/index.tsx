@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
+import axios from "axios";
 import { UserProfile, UpdateProfileRequest, ApiResponse } from "@/types/user";
 import { api } from "@/lib/api";
 
@@ -122,15 +123,18 @@ const EditProfileModal = ({ isOpen, onClose, profile, onSuccess }: EditProfileMo
       uploadFormData.append("file", file);
 
       const token = localStorage.getItem("accessToken");
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/profile/upload`, {
-        method: "POST",
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: uploadFormData,
-      });
+      const response = await axios.post<ApiResponse<{ url: string }>>(
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/profile/upload`,
+        uploadFormData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        }
+      );
 
-      const result: ApiResponse<{ url: string }> = await response.json();
+      const result = response.data;
 
       if (result.success && result.data) {
         setFormData((prev) => ({ ...prev, profilePhoto: result.data!.url }));

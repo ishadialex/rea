@@ -20,6 +20,11 @@ morgan.token("user-id", (req: Request) => {
   return (req as any).userId || "guest";
 });
 
+// Custom token for real IP address (respects X-Forwarded-For from ngrok/proxies)
+morgan.token("real-ip", (req: Request) => {
+  return req.ip || req.socket.remoteAddress || "unknown";
+});
+
 // Get status color based on code
 function getStatusColor(status: string): string {
   const code = parseInt(status);
@@ -51,10 +56,15 @@ export const morganDev = morgan(
     const responseTime = tokens["response-time"](req, res) || "0";
     const contentLength = tokens.res(req, res, "content-length") || "-";
     const userId = tokens["user-id"](req, res) || "guest";
+    const realIp = tokens["real-ip"](req, res) || "unknown";
 
     const methodColor = getMethodColor(method);
     const statusColor = getStatusColor(status);
     const timeColor = parseFloat(responseTime) > 1000 ? colors.red : parseFloat(responseTime) > 500 ? colors.yellow : colors.green;
+
+    // Show IP only if it's not localhost (::1 or 127.0.0.1)
+    const isLocalhost = realIp === "::1" || realIp === "127.0.0.1" || realIp.startsWith("::ffff:127.");
+    const ipDisplay = isLocalhost ? "" : ` ${colors.blue}🌍 ${realIp}${colors.reset}`;
 
     // Modern formatted log
     return [
@@ -65,6 +75,7 @@ export const morganDev = morgan(
       `${timeColor}⚡ ${responseTime}ms${colors.reset}`,
       `${colors.gray}📦 ${contentLength}${colors.reset}`,
       `${colors.magenta}👤 ${userId}${colors.reset}`,
+      ipDisplay,
     ].join(" ");
   },
   {
