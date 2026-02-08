@@ -52,7 +52,7 @@ export async function getAllUsers(req: Request, res: Response) {
 
 export async function getUser(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const user = await prisma.user.findUnique({
       where: { id },
@@ -105,7 +105,7 @@ export async function getUser(req: Request, res: Response) {
 
 export async function updateUserRole(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { role } = req.body;
 
     const existingUser = await prisma.user.findUnique({ where: { id } });
@@ -134,7 +134,7 @@ export async function updateUserRole(req: Request, res: Response) {
 
 export async function updateUserStatus(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { isActive } = req.body;
 
     const existingUser = await prisma.user.findUnique({ where: { id } });
@@ -163,7 +163,7 @@ export async function updateUserStatus(req: Request, res: Response) {
 
 export async function updateUserKyc(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { kycStatus } = req.body;
 
     const existingUser = await prisma.user.findUnique({ where: { id } });

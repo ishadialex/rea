@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useCallback, useMemo, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useCallback, useMemo, useEffect, Suspense } from "react";
+import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import { SearchParamsWrapper } from "./SearchParamsWrapper";
 
 const PAGE_SIZE = 15;
 
@@ -105,17 +106,12 @@ function normalizeRows(txList: any[], fundOps: any[]): TxRow[] {
 const VALID_TYPES = ["all", "deposit", "withdrawal", "investment", "transfer", "referral", "profit"];
 const VALID_STATUSES = ["all", "completed", "pending", "failed", "processing"];
 
-export default function TransactionPage() {
+function TransactionContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
-  const [selectedFilter, setSelectedFilter] = useState(
-    VALID_TYPES.includes(searchParams.get("type") || "") ? searchParams.get("type")! : "all"
-  );
-  const [selectedStatus, setSelectedStatus] = useState(
-    VALID_STATUSES.includes(searchParams.get("status") || "") ? searchParams.get("status")! : "all"
-  );
-  const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
+  const [selectedFilter, setSelectedFilter] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [rows, setRows] = useState<TxRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -232,6 +228,17 @@ export default function TransactionPage() {
 
   return (
     <div className="min-h-screen">
+      {/* Search params synchronization */}
+      <Suspense fallback={null}>
+        <SearchParamsWrapper
+          onParamsChange={(type, status, query) => {
+            setSelectedFilter(type);
+            setSelectedStatus(status);
+            setSearchQuery(query);
+          }}
+        />
+      </Suspense>
+
       <div className="mb-6 flex items-center justify-between md:mb-8">
         <div>
           <h1 className="text-2xl font-bold text-black dark:text-white md:text-3xl">Transactions</h1>
@@ -443,5 +450,20 @@ export default function TransactionPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function TransactionPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+          <p className="text-body-color dark:text-body-color-dark">Loading transactions...</p>
+        </div>
+      </div>
+    }>
+      <TransactionContent />
+    </Suspense>
   );
 }

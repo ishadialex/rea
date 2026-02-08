@@ -40,7 +40,7 @@ export async function getSessions(req: Request, res: Response) {
 
 export async function revokeSession(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     // RefreshToken is optional - can be in body, query, or header
     const currentToken = req.body?.refreshToken ||
                          req.query?.refreshToken as string ||

@@ -35,7 +35,7 @@ export async function getAll(req: Request, res: Response) {
 
 export async function getOne(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const property = await prisma.property.findUnique({
       where: { id },
@@ -77,7 +77,7 @@ export async function create(req: Request, res: Response) {
 
 export async function update(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const existing = await prisma.property.findUnique({ where: { id } });
     if (!existing) {
@@ -98,7 +98,7 @@ export async function update(req: Request, res: Response) {
 
 export async function remove(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const existing = await prisma.property.findUnique({ where: { id } });
     if (!existing) {
@@ -120,7 +120,7 @@ export async function remove(req: Request, res: Response) {
 
 export async function hardDelete(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const existing = await prisma.property.findUnique({
       where: { id },

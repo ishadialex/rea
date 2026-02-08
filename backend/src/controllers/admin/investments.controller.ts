@@ -26,7 +26,7 @@ export async function create(req: Request, res: Response) {
 
 export async function update(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const existing = await prisma.investmentOption.findUnique({ where: { id } });
     if (!existing) {
@@ -45,7 +45,7 @@ export async function update(req: Request, res: Response) {
 
 export async function remove(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const existing = await prisma.investmentOption.findUnique({ where: { id } });
     if (!existing) {

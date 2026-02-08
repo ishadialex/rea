@@ -273,7 +273,7 @@ export async function getFundOperations(req: Request, res: Response) {
 export async function getFundOperationById(req: Request, res: Response) {
   try {
     const userId = req.userId!;
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const operation = await prisma.fundOperation.findUnique({
       where: { id },

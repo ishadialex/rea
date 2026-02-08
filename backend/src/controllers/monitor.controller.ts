@@ -64,7 +64,8 @@ export async function getMetrics(_req: Request, res: Response) {
 export async function getDatabaseStatus(_req: Request, res: Response) {
   try {
     const start = Date.now();
-    await prisma.$queryRaw`SELECT 1`;
+    // Simple ping test for MongoDB
+    await prisma.user.findFirst({ take: 1 });
     const responseTime = Date.now() - start;
 
     return success(res, {

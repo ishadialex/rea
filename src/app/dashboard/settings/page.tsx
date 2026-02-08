@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter } from "next/navigation";
 import { AxiosError } from "axios";
 import { api } from "@/lib/api";
+import { TabWrapper } from "./TabWrapper";
 
 interface UserSettings {
   emailNotifications: boolean;
@@ -22,14 +23,10 @@ interface ActiveSession {
   current: boolean;
 }
 
-const VALID_TABS = ["password", "notifications", "privacy", "sessions", "danger"];
-
-export default function SettingsPage() {
+function SettingsContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(true);
-  const initialTab = VALID_TABS.includes(searchParams.get("tab") || "") ? searchParams.get("tab")! : "password";
-  const [activeTab, setActiveTab] = useState(initialTab);
+  const [activeTab, setActiveTab] = useState("password");
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
@@ -405,6 +402,10 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-4xl">
+      {/* Tab synchronization with URL */}
+      <Suspense fallback={null}>
+        <TabWrapper onTabChange={setActiveTab} />
+      </Suspense>
       {/* Notifications */}
       {successMessage && (
         <div className="fixed left-4 right-4 top-4 z-50 flex items-center gap-2 rounded-lg bg-green-500 px-4 py-3 text-white shadow-lg sm:left-auto sm:right-4 sm:w-auto sm:gap-3 sm:px-6 sm:py-4">
@@ -1156,5 +1157,20 @@ export default function SettingsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+          <p className="text-body-color dark:text-body-color-dark">Loading settings...</p>
+        </div>
+      </div>
+    }>
+      <SettingsContent />
+    </Suspense>
   );
 }

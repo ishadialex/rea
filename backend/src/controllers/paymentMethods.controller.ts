@@ -47,7 +47,7 @@ export async function getPaymentMethods(req: Request, res: Response) {
  */
 export async function getPaymentMethodById(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const paymentMethod = await prisma.paymentWallet.findUnique({
       where: { id },

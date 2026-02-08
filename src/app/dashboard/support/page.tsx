@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect, useRef, Suspense } from "react";
+import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import { TabWrapper } from "./TabWrapper";
 
 interface FileAttachment {
   id: string;
@@ -43,13 +44,11 @@ interface CreateTicketForm {
   message: string;
 }
 
-export default function SupportPage() {
+function SupportContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const initialTab = searchParams.get("tab") === "new" ? "new" : "tickets";
-  const [activeTab, setActiveTab] = useState<"tickets" | "new">(initialTab);
+  const [activeTab, setActiveTab] = useState<"tickets" | "new">("tickets");
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [isLoadingTicket, setIsLoadingTicket] = useState(false);
 
@@ -630,6 +629,11 @@ export default function SupportPage() {
 
   return (
     <div className="mx-auto max-w-4xl">
+      {/* Tab synchronization with URL */}
+      <Suspense fallback={null}>
+        <TabWrapper onTabChange={setActiveTab} />
+      </Suspense>
+
       {/* Notifications */}
       {successMessage && (
         <div className="fixed left-4 right-4 top-4 z-50 flex items-center gap-2 rounded-lg bg-green-500 px-4 py-3 text-white shadow-lg sm:left-auto sm:right-4 sm:w-auto sm:gap-3 sm:px-6 sm:py-4">
@@ -952,5 +956,20 @@ export default function SupportPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function SupportPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+          <p className="text-body-color dark:text-body-color-dark">Loading support...</p>
+        </div>
+      </div>
+    }>
+      <SupportContent />
+    </Suspense>
   );
 }

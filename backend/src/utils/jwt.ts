@@ -7,10 +7,12 @@ interface TokenPayload {
 }
 
 export function signAccessToken(payload: TokenPayload): string {
+  // @ts-ignore - Type inference issue with jwt.sign overloads
   return jwt.sign(payload, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRES_IN });
 }
 
 export function signRefreshToken(payload: TokenPayload): string {
+  // @ts-ignore - Type inference issue with jwt.sign overloads
   return jwt.sign(payload, env.JWT_REFRESH_SECRET, { expiresIn: env.JWT_REFRESH_EXPIRES_IN });
 }
 
