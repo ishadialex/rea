@@ -3,6 +3,14 @@
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { UserProfile, UpdateProfileRequest, ApiResponse } from "@/types/user";
+import { api } from "@/lib/api";
+
+const getImageUrl = (path: string | null | undefined) => {
+  if (!path) return null;
+  if (path.startsWith('http')) return path;
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+  return `${baseUrl}${path}`;
+};
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -113,8 +121,12 @@ const EditProfileModal = ({ isOpen, onClose, profile, onSuccess }: EditProfileMo
       const uploadFormData = new FormData();
       uploadFormData.append("file", file);
 
-      const response = await fetch("/api/profile/upload", {
+      const token = localStorage.getItem("accessToken");
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/profile/upload`, {
         method: "POST",
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: uploadFormData,
       });
 
@@ -122,6 +134,10 @@ const EditProfileModal = ({ isOpen, onClose, profile, onSuccess }: EditProfileMo
 
       if (result.success && result.data) {
         setFormData((prev) => ({ ...prev, profilePhoto: result.data!.url }));
+        // Emit event to notify other components
+        window.dispatchEvent(new CustomEvent('profilePhotoUpdated', {
+          detail: { profilePhoto: result.data!.url }
+        }));
       } else {
         setErrorMessage(result.message || "Failed to upload photo");
       }
@@ -134,6 +150,10 @@ const EditProfileModal = ({ isOpen, onClose, profile, onSuccess }: EditProfileMo
 
   const handleRemovePhoto = () => {
     setFormData((prev) => ({ ...prev, profilePhoto: null }));
+    // Emit event to notify other components
+    window.dispatchEvent(new CustomEvent('profilePhotoUpdated', {
+      detail: { profilePhoto: null }
+    }));
   };
 
   const validateForm = (): boolean => {
@@ -162,21 +182,17 @@ const EditProfileModal = ({ isOpen, onClose, profile, onSuccess }: EditProfileMo
       setIsSaving(true);
       setErrorMessage("");
 
-      const response = await fetch("/api/profile", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const result: ApiResponse<UserProfile> = await response.json();
+      const result = await api.updateProfile(formData);
 
       if (result.success && result.data) {
         // Update localStorage for ProfileDropdown
         if (formData.firstName) {
           localStorage.setItem("userName", `${formData.firstName} ${formData.lastName}`);
         }
+        // Emit event to notify ProfileDropdown
+        window.dispatchEvent(new CustomEvent('profileUpdated', {
+          detail: { profile: result.data }
+        }));
         onSuccess(result.data);
       } else {
         if (result.errors) {
@@ -241,13 +257,14 @@ const EditProfileModal = ({ isOpen, onClose, profile, onSuccess }: EditProfileMo
               <div className="mb-4 flex flex-col items-center gap-3 sm:flex-row">
                 <div className="relative flex-shrink-0">
                   <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
-                    {formData.profilePhoto ? (
+                    {getImageUrl(formData.profilePhoto) ? (
                       <Image
-                        src={formData.profilePhoto}
+                        src={getImageUrl(formData.profilePhoto)!}
                         alt="Profile"
                         width={64}
                         height={64}
                         className="h-full w-full object-cover"
+                        unoptimized
                       />
                     ) : (
                       <span className="text-xl font-bold text-primary">

@@ -4,6 +4,14 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { UserProfile, ApiResponse } from "@/types/user";
 import EditProfileModal from "@/components/Dashboard/EditProfileModal";
+import { api } from "@/lib/api";
+
+const getImageUrl = (path: string | null | undefined) => {
+  if (!path) return null;
+  if (path.startsWith('http')) return path;
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+  return `${baseUrl}${path}`;
+};
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -13,12 +21,21 @@ export default function ProfilePage() {
 
   useEffect(() => {
     fetchProfile();
+
+    // Listen for profile photo updates
+    const handlePhotoUpdate = (event: any) => {
+      setProfile((prev) => prev ? { ...prev, profilePhoto: event.detail.profilePhoto } : null);
+    };
+
+    window.addEventListener('profilePhotoUpdated', handlePhotoUpdate);
+    return () => {
+      window.removeEventListener('profilePhotoUpdated', handlePhotoUpdate);
+    };
   }, []);
 
   const fetchProfile = async () => {
     try {
-      const response = await fetch("/api/profile");
-      const result: ApiResponse<UserProfile> = await response.json();
+      const result = await api.getProfile();
       if (result.success && result.data) {
         setProfile(result.data);
       }
@@ -100,13 +117,14 @@ export default function ProfilePage() {
           {/* Avatar */}
           <div className="relative flex-shrink-0">
             <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800 sm:h-28 sm:w-28">
-              {profile.profilePhoto ? (
+              {getImageUrl(profile.profilePhoto) ? (
                 <Image
-                  src={profile.profilePhoto}
+                  src={getImageUrl(profile.profilePhoto)!}
                   alt="Profile"
                   width={112}
                   height={112}
                   className="h-full w-full object-cover"
+                  unoptimized
                 />
               ) : (
                 <span className="text-2xl font-bold text-primary sm:text-4xl">

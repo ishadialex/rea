@@ -122,7 +122,7 @@ const DashboardSidebar = ({ isOpen, onClose }: DashboardSidebarProps) => {
       } lg:translate-x-0`}
     >
       {/* Logo and Close button */}
-      <div className="relative flex items-center border-b border-gray-800 px-3 py-4">
+      <div className="relative flex h-16 items-center border-b border-gray-800 px-3">
         {/* Close button for mobile */}
         <button
           onClick={onClose}

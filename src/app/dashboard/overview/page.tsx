@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { api } from "@/lib/api";
 
 // Types
 interface UserData {
@@ -50,16 +51,29 @@ interface DashboardData {
 
 // Mock API functions - Replace these with actual API calls
 const fetchUserData = async (): Promise<UserData> => {
-  // Simulate API delay
-  await new Promise((resolve) => setTimeout(resolve, 800));
+  try {
+    const result = await api.getProfile();
+    if (result.success && result.data) {
+      const user = result.data;
+      return {
+        name: `${user.firstName} ${user.lastName}`,
+        email: user.email,
+        accountBalance: user.balance || 0,
+        kycStatus: user.kycStatus || "pending",
+        twoFactorEnabled: user.twoFactorEnabled || false,
+      };
+    }
+  } catch (error) {
+    console.error("Failed to fetch user data:", error);
+  }
 
-  // In production, replace with: const response = await fetch('/api/user'); return response.json();
+  // Fallback to default values if API fails
   return {
-    name: "John Doe",
-    email: "john.doe@example.com",
-    accountBalance: 12500.0,
-    kycStatus: "verified",
-    twoFactorEnabled: true,
+    name: "User",
+    email: "",
+    accountBalance: 0,
+    kycStatus: "pending",
+    twoFactorEnabled: false,
   };
 };
 

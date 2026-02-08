@@ -3,18 +3,64 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { api } from "@/lib/api";
+
+const getImageUrl = (path: string | null | undefined) => {
+  if (!path) return null;
+  if (path.startsWith('http')) return path;
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+  return `${baseUrl}${path}`;
+};
 
 const ProfileDropdown = () => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const [userName, setUserName] = useState("User");
+  const [userEmail, setUserEmail] = useState("");
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
 
-  // Get user info from localStorage
-  const userEmail = typeof window !== "undefined"
-    ? localStorage.getItem("userEmail") || "admin@alvaradoassociatepartners.com"
-    : "admin@alvaradoassociatepartners.com";
+  // Fetch user data on mount
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const result = await api.getProfile();
+        if (result.success && result.data) {
+          const fullName = `${result.data.firstName} ${result.data.lastName}`;
+          setUserName(fullName);
+          setUserEmail(result.data.email);
+          setProfilePhoto(result.data.profilePhoto);
+        }
+      } catch (error) {
+        console.error("Failed to fetch user profile:", error);
+        // Fallback to localStorage if API fails
+        const storedEmail = localStorage.getItem("userEmail");
+        if (storedEmail) setUserEmail(storedEmail);
+      }
+    };
 
-  const userName = "Admin User";
+    fetchUserData();
+
+    // Listen for profile photo updates
+    const handlePhotoUpdate = (event: any) => {
+      setProfilePhoto(event.detail.profilePhoto);
+    };
+
+    // Listen for full profile updates
+    const handleProfileUpdate = (event: any) => {
+      const profile = event.detail.profile;
+      setUserName(`${profile.firstName} ${profile.lastName}`);
+      setUserEmail(profile.email);
+      setProfilePhoto(profile.profilePhoto);
+    };
+
+    window.addEventListener('profilePhotoUpdated', handlePhotoUpdate);
+    window.addEventListener('profileUpdated', handleProfileUpdate);
+    return () => {
+      window.removeEventListener('profilePhotoUpdated', handlePhotoUpdate);
+      window.removeEventListener('profileUpdated', handleProfileUpdate);
+    };
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -29,8 +75,13 @@ const ProfileDropdown = () => {
   }, []);
 
   const handleSignOut = () => {
+    // Clear all auth data
     localStorage.removeItem("isLoggedIn");
     localStorage.removeItem("userEmail");
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("user");
+    api.clearToken();
     router.push("/signin");
   };
 
@@ -42,10 +93,21 @@ const ProfileDropdown = () => {
         className="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
       >
         {/* Avatar */}
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white">
-          <span className="text-sm font-semibold">
-            {userName.charAt(0).toUpperCase()}
-          </span>
+        <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-primary text-white">
+          {getImageUrl(profilePhoto) ? (
+            <Image
+              src={getImageUrl(profilePhoto)!}
+              alt={userName}
+              width={40}
+              height={40}
+              className="h-full w-full object-cover"
+              unoptimized
+            />
+          ) : (
+            <span className="text-sm font-semibold">
+              {userName.charAt(0).toUpperCase()}
+            </span>
+          )}
         </div>
 
         {/* Name - Hidden on mobile */}

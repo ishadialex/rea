@@ -29,7 +29,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Main Content Area */}
       <main className="min-h-screen lg:ml-64">
         {/* Mobile Header with Hamburger */}
-        <div className="sticky top-0 z-30 flex items-center justify-between bg-white px-2 py-2 shadow-[0_8px_16px_-8px_rgba(0,0,0,0.1)] dark:bg-gray-dark dark:shadow-[0_8px_16px_-8px_rgba(0,0,0,0.3)] lg:hidden">
+        <div className="sticky top-0 z-30 flex h-16 items-center justify-between bg-white px-2 shadow-[0_8px_16px_-8px_rgba(0,0,0,0.1)] dark:bg-gray-dark dark:shadow-[0_8px_16px_-8px_rgba(0,0,0,0.3)] lg:hidden">
           {/* Left side - Hamburger */}
           <button
             onClick={() => setSidebarOpen(true)}
@@ -58,8 +58,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
         </div>
 
-        {/* Desktop Top Bar - Top Right */}
-        <div className="fixed right-6 top-6 z-30 hidden items-center gap-3 lg:flex">
+        {/* Desktop Top Bar - Full Width */}
+        <div className="fixed left-64 right-0 top-0 z-30 hidden h-16 items-center justify-end gap-3 border-b border-gray-800 bg-black px-6 lg:flex">
           <ThemeToggler />
           <NotificationPanel />
           <ProfileDropdown />

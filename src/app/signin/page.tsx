@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { loadReCaptchaScript, executeReCaptcha } from "@/utils/recaptcha";
 import axios from "axios";
+import { api } from "@/lib/api";
 
 const SigninPage = () => {
   const router = useRouter();
@@ -63,6 +64,9 @@ const SigninPage = () => {
         localStorage.setItem("isLoggedIn", "true");
         localStorage.setItem("userEmail", email);
         localStorage.setItem("user", JSON.stringify(response.data.data.user));
+
+        // Set token in API client
+        api.setToken(response.data.data.accessToken);
 
         // Redirect to dashboard
         router.push("/dashboard");
